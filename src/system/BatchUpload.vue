@@ -586,9 +586,21 @@ export default {
       }
 
       const submitData = this.buildSubmitData()
-      console.log('批量上传数据模型：', submitData)
-      ElMessage.success('数据已准备完成，后端接口待对接')
-      // TODO: 对接后端批量上传接口，submitData 即为最终提交数组
+      this.isUploading = true
+      request.post('/trbsts/batch', submitData).then(res => {
+        if (res.data.code === 1) {
+          ElMessage.success(`成功上传 ${submitData.length} 条排查记录！`)
+          // 提交成功后清空表格，避免重复提交
+          this.tableData = []
+          this.currentPage = 1
+        } else {
+          ElMessage.error(res.data.msg || '批量上传失败！')
+        }
+      }).catch(() => {
+        ElMessage.error('批量上传失败！')
+      }).finally(() => {
+        this.isUploading = false
+      })
     }
   }
 }
