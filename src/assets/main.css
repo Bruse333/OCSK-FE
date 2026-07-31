@@ -1,0 +1,49 @@
+@import "./base.css";
+
+#app {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  font-weight: normal;
+}
+
+#app .login-alert {
+  position: fixed !important;
+  top: 70px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  width: 90vw !important;
+  max-width: 480px !important;
+  z-index: 100 !important;
+}
+
+#app .login-alert .el-alert__title {
+  padding-right: 24px !important;
+  box-sizing: border-box;
+  word-break: break-all;
+}
+
+#app .login-alert .el-alert__close-btn {
+  position: absolute !important;
+  top: 12px !important;
+  right: 16px !important;
+}
+
+a,
+.green {
+  text-decoration: none;
+  color: hsla(160, 100%, 37%, 1);
+  transition: 0.4s;
+}
+
+@media (hover: hover) {
+  a:hover {
+    background-color: hsla(160, 100%, 37%, 0.2);
+  }
+}
+
+@media (min-width: 1024px) {
+  #app {
+    padding: 0;
+  }
+}
