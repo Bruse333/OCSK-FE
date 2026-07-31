@@ -2,8 +2,17 @@
   <div class="batch-page">
     <!-- 页面标题 -->
     <div class="page-header">
-      <h2 class="page-title">批量上传排查记录</h2>
-      <p class="page-subtitle">通过上传 Excel 文件批量导入故障排查记录，支持预览、编辑后一键提交</p>
+      <div class="header-left">
+        <h2 class="page-title">批量上传排查记录</h2>
+        <p class="page-subtitle">通过上传 Excel 文件批量导入故障排查记录，支持预览、编辑后一键提交</p>
+      </div>
+      <button class="sample-btn" @click="downloadSample" title="下载批量上传示例文件">
+        <svg class="sample-icon" viewBox="0 0 1024 1024" width="16" height="16" aria-hidden="true">
+          <path d="M505.7 661c8 8 18.8 12.3 29.7 12.3 10.9 0 21.7-4.1 29.7-12.3l261.9-261.9c16.4-16.4 16.4-43 0-59.4-16.4-16.4-43-16.4-59.4 0L568 475.6V128c0-23.2-18.8-42-42-42s-42 18.8-42 42v347.6L327.5 339.7c-16.4-16.4-43-16.4-59.4 0-16.4 16.4-16.4 43 0 59.4L505.7 661z"/>
+          <path d="M896 768H128c-23.2 0-42 18.8-42 42s18.8 42 42 42h768c23.2 0 42-18.8 42-42s-18.8-42-42-42z"/>
+        </svg>
+        <span>下载示例文件</span>
+      </button>
     </div>
 
     <!-- 数据表格（仅有数据时展示） -->
@@ -208,6 +217,18 @@ export default {
     this.fetchShips()
   },
   methods: {
+    // ====== 下载示例文件 ======
+    downloadSample() {
+      const url = 'http://user-bk.oss-cn-shanghai.aliyuncs.com/%E6%89%B9%E9%87%8F%E4%B8%8A%E4%BC%A0%E7%A4%BA%E4%BE%8B%E6%96%87%E4%BB%B6.xlsx'
+      const a = document.createElement('a')
+      a.href = url
+      a.download = '批量上传示例文件.xlsx'
+      a.target = '_blank'
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+    },
+
     // ====== 船型列表 ======
     fetchShips() {
       request.get('/ships').then(res => {
@@ -613,7 +634,16 @@ export default {
 }
 
 .page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
   margin-bottom: 20px;
+  gap: 16px;
+}
+
+.header-left {
+  flex: 1;
+  min-width: 0;
 }
 
 .page-title {
@@ -627,6 +657,39 @@ export default {
   margin: 6px 0 0;
   font-size: 13px;
   color: #999;
+}
+
+/* 示例文件下载按钮 */
+.sample-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: 1px solid #3584e4;
+  background: #f0f7ff;
+  color: #1a5fb4;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.25s;
+  white-space: nowrap;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(53, 132, 228, 0.12);
+}
+
+.sample-btn:hover {
+  background: #3584e4;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(53, 132, 228, 0.3);
+}
+
+.sample-btn:active {
+  transform: translateY(1px);
+}
+
+.sample-icon {
+  flex-shrink: 0;
 }
 
 /* Excel 上传区 */
