@@ -266,6 +266,7 @@
 <script>
 import request from '@/utils/request'
 import { getUsername, getPrivilege } from '@/utils/token'
+import { deleteFiles } from '@/utils/file'
 
 export default {
   name: 'RetrievalPageH5',
@@ -301,6 +302,7 @@ export default {
       privilege: 1,
       showDeleteConfirm: false,
       deleteIndex: -1,
+      editDeletedFiles: [],
       alertBox: { show: false, msg: '' }
     }
   },
@@ -450,6 +452,7 @@ export default {
         photoList,
         fileList
       }
+      this.editDeletedFiles = []
       this.showEditModal = true
     },
     closeEdit() {
@@ -462,9 +465,17 @@ export default {
       this.editForm.steps.splice(index, 1)
     },
     removeEditPhoto(index) {
+      const photo = this.editForm.photoList[index]
+      if (photo && photo.url) {
+        this.editDeletedFiles.push(photo.url)
+      }
       this.editForm.photoList.splice(index, 1)
     },
     removeEditFile(index) {
+      const file = this.editForm.fileList[index]
+      if (file && file.url) {
+        this.editDeletedFiles.push(file.url)
+      }
       this.editForm.fileList.splice(index, 1)
     },
     formatFileSize(bytes) {
@@ -541,6 +552,11 @@ export default {
       }
       request.post('/trbsts', submitData).then(res => {
         if (res.data.code === 1) {
+          // 提交编辑期间被删除的源文件到后端清理
+          if (this.editDeletedFiles.length > 0) {
+            deleteFiles(this.editDeletedFiles)
+            this.editDeletedFiles = []
+          }
           this.showAlert('保存成功')
           this.showEditModal = false
           this.fetchData()
@@ -564,6 +580,12 @@ export default {
       request.delete('/trbsts', { params: { id: item.id } }).then(res => {
         if (res.data.code === 1) {
           this.showAlert('删除成功')
+          // 删除该记录关联的所有源文件
+          const urls = [
+            ...(item.photoList || []),
+            ...(item.docList || [])
+          ]
+          if (urls.length > 0) deleteFiles(urls)
           this.fetchData()
         } else {
           this.showAlert(res.data.msg || '删除失败')

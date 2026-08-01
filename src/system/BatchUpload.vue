@@ -189,6 +189,7 @@
 import { ElMessage, ElMessageBox } from 'element-plus'
 import request from '@/utils/request'
 import { getPrivilege } from '@/utils/token'
+import { deleteFiles } from '@/utils/file'
 
 export default {
   name: 'BatchUploadPage',
@@ -539,10 +540,14 @@ export default {
 
     // ====== 删除操作 ======
     removePhoto(rowIndex, photoIndex) {
+      const photo = this.tableData[rowIndex]?.photos[photoIndex]
+      if (photo && photo.url) deleteFiles(photo.url)
       this.tableData[rowIndex].photos.splice(photoIndex, 1)
     },
 
     removeDoc(rowIndex, docIndex) {
+      const doc = this.tableData[rowIndex]?.docs[docIndex]
+      if (doc && doc.url) deleteFiles(doc.url)
       this.tableData[rowIndex].docs.splice(docIndex, 1)
     },
 
@@ -552,6 +557,15 @@ export default {
     },
 
     removeRow(rowIndex) {
+      // 删除该行所有已上传的源文件
+      const row = this.tableData[rowIndex]
+      if (row) {
+        const urls = [
+          ...row.photos.filter(p => p.url).map(p => p.url),
+          ...row.docs.filter(d => d.url).map(d => d.url)
+        ]
+        if (urls.length > 0) deleteFiles(urls)
+      }
       this.tableData.splice(rowIndex, 1)
       // 删除后若当前页无数据则回退一页
       const totalPages = Math.ceil(this.tableData.length / this.pageSize)
@@ -566,6 +580,13 @@ export default {
         cancelButtonText: '取消',
         type: 'warning'
       }).then(() => {
+        // 清空前删除所有已上传的源文件
+        const urls = []
+        this.tableData.forEach(row => {
+          row.photos.forEach(p => { if (p.url) urls.push(p.url) })
+          row.docs.forEach(d => { if (d.url) urls.push(d.url) })
+        })
+        if (urls.length > 0) deleteFiles(urls)
         this.tableData = []
         this.currentPage = 1
         ElMessage.success('数据已清空！')

@@ -225,6 +225,7 @@
                 v-for="(url, i) in currentDetail.docList"
                 :key="i"
                 :href="url"
+                referrerpolicy="origin"
                 target="_blank"
                 class="attach-item doc-item"
               >
@@ -340,6 +341,7 @@
 <script>
 import request from '@/utils/request'
 import { getUsername, getPrivilege } from '@/utils/token'
+import { deleteFiles } from '@/utils/file'
 import { ElMessage } from 'element-plus'
 
 export default {
@@ -378,6 +380,7 @@ export default {
       privilege: 1,
       showDeleteConfirm: false,
       deleteIndex: -1,
+      editDeletedFiles: [],
       alertBox: { show: false, msg: '' }
     }
   },
@@ -595,6 +598,7 @@ export default {
         photoList,
         fileList
       }
+      this.editDeletedFiles = []
       this.showEditModal = true
     },
     closeEdit() {
@@ -607,9 +611,17 @@ export default {
       this.editForm.steps.splice(index, 1)
     },
     removeEditPhoto(index) {
+      const photo = this.editForm.photoList[index]
+      if (photo && photo.url) {
+        this.editDeletedFiles.push(photo.url)
+      }
       this.editForm.photoList.splice(index, 1)
     },
     removeEditFile(index) {
+      const file = this.editForm.fileList[index]
+      if (file && file.url) {
+        this.editDeletedFiles.push(file.url)
+      }
       this.editForm.fileList.splice(index, 1)
     },
 
@@ -744,6 +756,11 @@ export default {
       }
       request.post('/trbsts', submitData).then(res => {
         if (res.data.code === 1) {
+          // 提交编辑期间被删除的源文件到后端清理
+          if (this.editDeletedFiles.length > 0) {
+            deleteFiles(this.editDeletedFiles)
+            this.editDeletedFiles = []
+          }
           ElMessage({
           message: '保存成功！',
           type: 'success',
@@ -789,9 +806,15 @@ export default {
       request.delete('/trbsts', { params: { id: item.id } }).then(res => {
         if (res.data.code === 1) {
           ElMessage({
-          message: '删除成功！',
-          type: 'success',
-        })
+            message: '删除成功！',
+            type: 'success',
+          })
+          // 删除该记录关联的所有源文件
+          const urls = [
+            ...(item.photoList || []),
+            ...(item.docList || [])
+          ]
+          if (urls.length > 0) deleteFiles(urls)
           this.fetchData()
         } else {
           ElMessage({

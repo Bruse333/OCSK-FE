@@ -137,6 +137,7 @@
 <script>
 import request from '@/utils/request'
 import { getPrivilege } from '@/utils/token'
+import { deleteFiles } from '@/utils/file'
 import { ElNotification } from 'element-plus'
 export default {
   name: 'AddRecordPageH5',
@@ -269,8 +270,15 @@ export default {
       })
     },
     removeFile(index, type) {
-      if (type === 'photo') this.photoList.splice(index, 1)
-      else this.fileList.splice(index, 1)
+      if (type === 'photo') {
+        const photo = this.photoList[index]
+        if (photo && photo.url) deleteFiles(photo.url)
+        this.photoList.splice(index, 1)
+      } else {
+        const file = this.fileList[index]
+        if (file && file.url) deleteFiles(file.url)
+        this.fileList.splice(index, 1)
+      }
     },
 
     handleSubmit() {
