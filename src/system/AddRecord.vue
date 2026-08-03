@@ -151,6 +151,7 @@ import { ElMessage } from 'element-plus'
 import request from '@/utils/request'
 import { getPrivilege } from '@/utils/token'
 import { deleteFiles } from '@/utils/file'
+import { uploadFile } from '@/utils/uploadQueue'
 
 export default {
   name: 'AddRecordPage',
@@ -261,18 +262,7 @@ export default {
       if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
       return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
     },
-    uploadFile(file) {
-      const formData = new FormData()
-      formData.append('file', file)
-      return request.post('/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      }).then(res => {
-        if (res.data.code === 1 && res.data.data) {
-          return res.data.data
-        }
-        throw new Error(res.data.msg || '上传失败')
-      })
-    },
+    // ====== 文件上传（节流逻辑由 @/utils/uploadQueue 统一管理） ======
     choosePhoto(e) {
       const files = Array.from(e.target.files)
       e.target.value = ''
@@ -304,7 +294,7 @@ export default {
         const preview = URL.createObjectURL(file)
         const baseLen = this.photoList.length
         this.photoList.push({ preview, url: '', uploading: true })
-        this.uploadFile(file).then(ossUrl => {
+        uploadFile(file).then(ossUrl => {
           this.photoList[baseLen].url = ossUrl
           this.photoList[baseLen].uploading = false
         }).catch(() => {
@@ -344,7 +334,7 @@ export default {
           url: '',
           uploading: true
         })
-        this.uploadFile(file).then(ossUrl => {
+        uploadFile(file).then(ossUrl => {
           this.fileList[baseLen].url = ossUrl
           this.fileList[baseLen].uploading = false
         }).catch(() => {

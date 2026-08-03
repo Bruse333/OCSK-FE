@@ -73,7 +73,7 @@
         <el-form-item label="权限" prop="privilege">
           <el-select v-model="addForm.privilege" placeholder="请选择权限" style="width: 100%">
             <el-option :value="1" label="仅查询" />
-            <el-option :value="2" label="查询与修改" />
+            <el-option :value="2" label="查询与上传" />
             <el-option :value="3" label="所有权限" />
           </el-select>
         </el-form-item>
@@ -162,7 +162,7 @@ export default {
   },
   methods: {
     privilegeText(value) {
-      const map = { 1: '仅查询', 2: '查询与修改', 3: '所有权限' }
+      const map = { 1: '仅查询', 2: '查询与上传', 3: '所有权限' }
       return map[value] || '未知'
     },
     privilegeTagType(value) {

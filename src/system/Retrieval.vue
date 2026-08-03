@@ -95,8 +95,8 @@
               <div class="card-actions">
                 <button
                   class="card-btn edit-btn"
-                  :class="{ 'btn-disabled': privilege < 2 }"
-                  :disabled="privilege < 2"
+                  :class="{ 'btn-disabled': privilege != 3 }"
+                  :disabled="privilege != 3"
                   @click.stop="openEdit(index)"
                 >编辑</button>
                 <button
@@ -342,6 +342,7 @@
 import request from '@/utils/request'
 import { getUsername, getPrivilege } from '@/utils/token'
 import { deleteFiles } from '@/utils/file'
+import { uploadFile } from '@/utils/uploadQueue'
 import { ElMessage } from 'element-plus'
 
 export default {
@@ -572,7 +573,7 @@ export default {
 
     // ====== 编辑 ======
     openEdit(index) {
-      if (this.privilege < 2) {
+      if (this.privilege != 3) {
         ElMessage({
           message: '权限不足，无法编辑！',
           type: 'warning',
@@ -631,18 +632,7 @@ export default {
       if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
       return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
     },
-    uploadFile(file) {
-      const formData = new FormData()
-      formData.append('file', file)
-      return request.post('/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      }).then(res => {
-        if (res.data.code === 1 && res.data.data) {
-          return res.data.data
-        }
-        throw new Error(res.data.msg || '上传失败')
-      })
-    },
+    // ====== 文件上传（节流逻辑由 @/utils/uploadQueue 统一管理） ======
     chooseEditPhoto(e) {
       const files = Array.from(e.target.files)
       e.target.value = ''
@@ -667,7 +657,7 @@ export default {
         const preview = URL.createObjectURL(file)
         const baseLen = this.editForm.photoList.length
         this.editForm.photoList.push({ preview, url: '', uploading: true })
-        this.uploadFile(file).then(ossUrl => {
+        uploadFile(file).then(ossUrl => {
           this.editForm.photoList[baseLen].url = ossUrl
           this.editForm.photoList[baseLen].uploading = false
         }).catch(() => {
@@ -700,7 +690,7 @@ export default {
           url: '',
           uploading: true
         })
-        this.uploadFile(file).then(ossUrl => {
+        uploadFile(file).then(ossUrl => {
           this.editForm.fileList[baseLen].url = ossUrl
           this.editForm.fileList[baseLen].uploading = false
         }).catch(() => {

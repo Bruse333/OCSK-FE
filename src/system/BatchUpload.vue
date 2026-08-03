@@ -6,13 +6,21 @@
         <h2 class="page-title">批量上传排查记录</h2>
         <p class="page-subtitle">通过上传 Excel 文件批量导入故障排查记录，支持预览、编辑后一键提交</p>
       </div>
-      <button class="sample-btn" @click="downloadSample" title="下载批量上传示例文件">
-        <svg class="sample-icon" viewBox="0 0 1024 1024" width="16" height="16" aria-hidden="true">
-          <path d="M505.7 661c8 8 18.8 12.3 29.7 12.3 10.9 0 21.7-4.1 29.7-12.3l261.9-261.9c16.4-16.4 16.4-43 0-59.4-16.4-16.4-43-16.4-59.4 0L568 475.6V128c0-23.2-18.8-42-42-42s-42 18.8-42 42v347.6L327.5 339.7c-16.4-16.4-43-16.4-59.4 0-16.4 16.4-16.4 43 0 59.4L505.7 661z"/>
-          <path d="M896 768H128c-23.2 0-42 18.8-42 42s18.8 42 42 42h768c23.2 0 42-18.8 42-42s-18.8-42-42-42z"/>
-        </svg>
-        <span>下载示例文件</span>
-      </button>
+      <div class="header-actions">
+        <button class="header-btn btn-add-ship" @click="addShipType">
+          <svg class="header-btn-icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+            <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+          </svg>
+          <span>新增船型</span>
+        </button>
+        <button class="header-btn btn-sample" @click="downloadSample" title="下载批量上传示例文件">
+          <svg class="header-btn-icon" viewBox="0 0 1024 1024" width="16" height="16" aria-hidden="true">
+            <path d="M505.7 661c8 8 18.8 12.3 29.7 12.3 10.9 0 21.7-4.1 29.7-12.3l261.9-261.9c16.4-16.4 16.4-43 0-59.4-16.4-16.4-43-16.4-59.4 0L568 475.6V128c0-23.2-18.8-42-42-42s-42 18.8-42 42v347.6L327.5 339.7c-16.4-16.4-43-16.4-59.4 0-16.4 16.4-16.4 43 0 59.4L505.7 661z"/>
+            <path d="M896 768H128c-23.2 0-42 18.8-42 42s18.8 42 42 42h768c23.2 0 42-18.8 42-42s-18.8-42-42-42z"/>
+          </svg>
+          <span>下载示例文件</span>
+        </button>
+      </div>
     </div>
 
     <!-- 数据表格（仅有数据时展示） -->
@@ -22,7 +30,7 @@
         <span class="record-count">
           共 <strong>{{ tableData.length }}</strong> 条数据
           <span v-if="unmatchedCount > 0" class="unmatched-tip">
-            （{{ unmatchedCount }} 条船型未匹配，请手动选择）
+            （{{ unmatchedCount }} 条未匹配）
           </span>
         </span>
         <div class="toolbar-actions">
@@ -92,7 +100,9 @@
             <div class="photo-cell">
               <div v-for="(photo, i) in row.photos" :key="i" class="photo-thumb">
                 <img :src="photo.preview || photo.url" alt="照片" />
-                <div v-if="photo.uploading" class="thumb-uploading">上传中</div>
+                <div v-if="photo.uploading" class="thumb-uploading">
+                  <span class="loading-spinner"></span>
+                </div>
                 <span class="thumb-remove" @click="removePhoto(getRowIndex($index), i)">×</span>
               </div>
               <el-upload
@@ -118,7 +128,9 @@
               <div v-for="(doc, i) in row.docs" :key="i" class="file-tag">
                 <span class="file-tag-icon">📎</span>
                 <span class="file-tag-name">文件{{ i + 1 }}</span>
-                <span v-if="doc.uploading" class="file-uploading">上传中</span>
+                <span v-if="doc.uploading" class="file-uploading">
+                  <span class="loading-spinner small"></span>
+                </span>
                 <span class="file-remove" @click="removeDoc(getRowIndex($index), i)">×</span>
               </div>
               <el-upload
@@ -182,6 +194,72 @@
         </div>
       </el-upload>
     </div>
+
+    <!-- 新增船型弹窗 -->
+    <el-dialog v-model="shipTypeDialogVisible" title="新增船型" width="400px" :close-on-click-modal="false" append-to-body>
+      <el-form @submit.prevent="confirmAddShip">
+        <el-form-item>
+          <el-input
+            v-model="newShipName"
+            placeholder="请输入船型名称"
+            maxlength="20"
+            clearable
+            @keyup.enter="confirmAddShip"
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="cancelAddShip">取消</el-button>
+        <el-button type="primary" :loading="addShipSubmitting" @click="confirmAddShip">确定</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 批量添加未匹配船型弹窗 -->
+    <el-dialog
+      v-model="unmatchedShipsDialogVisible"
+      title="发现未匹配的船型"
+      width="500px"
+      :close-on-click-modal="false"
+      append-to-body
+    >
+      <div class="unmatched-ships-header">
+        <p class="unmatched-ships-tip">
+          Excel 中的以下船型在系统中不存在，是否批量添加到系统？
+        </p>
+        <el-checkbox
+          :model-value="unmatchedShips.every(item => item.checked)"
+          :indeterminate="unmatchedShips.some(item => item.checked) && !unmatchedShips.every(item => item.checked)"
+          @change="toggleAllUnmatchedShips"
+        >
+          全选
+        </el-checkbox>
+      </div>
+      <div class="unmatched-ships-list">
+        <el-checkbox
+          v-for="item in unmatchedShips"
+          :key="item.name"
+          v-model="item.checked"
+          :label="item.name"
+          class="unmatched-ship-item"
+          :disabled="batchAddShipsSubmitting"
+        />
+      </div>
+      <!-- 批量添加进度条 -->
+      <div v-if="batchAddProgress >= 0" class="batch-progress-wrapper">
+        <el-progress :percentage="batchAddProgress" :stroke-width="10" status="success" />
+        <p class="batch-progress-text">正在添加船型，请稍候...（{{ batchAddProgress }}%）</p>
+      </div>
+      <template #footer>
+        <el-button @click="unmatchedShipsDialogVisible = false" :disabled="batchAddShipsSubmitting">取消</el-button>
+        <el-button
+          type="primary"
+          :loading="batchAddShipsSubmitting"
+          @click="batchAddUnmatchedShips"
+        >
+          {{ batchAddShipsSubmitting ? '添加中...' : '批量添加' }}
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -190,6 +268,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import request from '@/utils/request'
 import { getPrivilege } from '@/utils/token'
 import { deleteFiles } from '@/utils/file'
+import { uploadFile as uploadQueuedFile } from '@/utils/uploadQueue'
 
 export default {
   name: 'BatchUploadPage',
@@ -201,7 +280,14 @@ export default {
       isUploading: false,
       privilege: 1,
       currentPage: 1,
-      pageSize: 10
+      pageSize: 10,
+      shipTypeDialogVisible: false,
+      newShipName: '',
+      addShipSubmitting: false,
+      unmatchedShipsDialogVisible: false,
+      unmatchedShips: [],
+      batchAddShipsSubmitting: false,
+      batchAddProgress: -1
     }
   },
   computed: {
@@ -232,7 +318,7 @@ export default {
 
     // ====== 船型列表 ======
     fetchShips() {
-      request.get('/ships').then(res => {
+      return request.get('/ships').then(res => {
         if (res.data.code === 1 && res.data.data) {
           this.shipList = res.data.data.map(item => ({ id: item.id, name: item.name }))
         }
@@ -282,7 +368,8 @@ export default {
           const shipName = String(row[0] || '').trim()
           const phenomenon = String(row[1] || '').trim()
           const shooting = String(row[2] || '').trim()
-          const matchedShip = this.shipList.find(s => s.name === shipName)
+          // 不区分大小写匹配船型
+          const matchedShip = this.shipList.find(s => s.name.toLowerCase() === shipName.toLowerCase())
 
           // 提取该行对应的内嵌图片（drawing 行号从 0 开始，跳过表头后数据行 = drawingRow - 1）
           const rowImages = imagesByRow[i + 1] || []
@@ -309,11 +396,13 @@ export default {
         // 上传从 Excel 提取的内嵌图片到服务端获取 OSS 链接
         this.uploadExtractedPhotos()
 
-        const unmatched = this.tableData.filter(r => !r.shipId).length
-        if (unmatched > 0) {
-          ElMessage.warning(
-            `成功解析 ${this.tableData.length} 条数据，其中 ${unmatched} 条船型未匹配，请手动选择！`
-          )
+        // 收集未匹配的船型名称（去重，过滤空名称）
+        const unmatchedShipNames = [...new Set(
+          this.tableData.filter(r => !r.shipId && r.shipName).map(r => r.shipName)
+        )]
+        if (unmatchedShipNames.length > 0) {
+          // 弹窗询问是否批量添加未匹配的船型
+          this.showUnmatchedShipsDialog(unmatchedShipNames)
         } else {
           ElMessage.success(`成功解析 ${this.tableData.length} 条数据！`)
         }
@@ -433,23 +522,35 @@ export default {
     },
 
     // 上传从 Excel 提取的内嵌图片到服务端
-    uploadExtractedPhotos() {
+    // 节流由 @/utils/uploadQueue 全局队列统一管理，无需额外延时
+    async uploadExtractedPhotos() {
+      // 收集所有需要上传的照片
+      const uploadTasks = []
       this.tableData.forEach((row, rowIndex) => {
         row.photos.forEach((photo, photoIndex) => {
           if (!photo._blob) return
-          // 构造带正确扩展名的 File 对象，避免后端取扩展名失败
-          const fileName = photo._fileName || 'image.png'
-          const mimeType = this.getMimeType(fileName)
-          const file = new File([photo._blob], fileName, { type: mimeType })
-          this.uploadSingleFile(file).then(ossUrl => {
-            this.tableData[rowIndex].photos[photoIndex].url = ossUrl
-            this.tableData[rowIndex].photos[photoIndex].uploading = false
-          }).catch(() => {
-            ElMessage.error(`第 ${rowIndex + 1} 行照片上传失败！`)
-            this.tableData[rowIndex].photos[photoIndex].uploading = false
-          })
+          uploadTasks.push({ rowIndex, photoIndex, photo })
         })
       })
+
+      if (uploadTasks.length === 0) return
+
+      // 串行执行，节流由 uploadSingleFile 内部队列保证
+      for (const { rowIndex, photoIndex, photo } of uploadTasks) {
+        // 构造带正确扩展名的 File 对象，避免后端取扩展名失败
+        const fileName = photo._fileName || 'image.png'
+        const mimeType = this.getMimeType(fileName)
+        const file = new File([photo._blob], fileName, { type: mimeType })
+
+        try {
+          const ossUrl = await this.uploadSingleFile(file)
+          this.tableData[rowIndex].photos[photoIndex].url = ossUrl
+          this.tableData[rowIndex].photos[photoIndex].uploading = false
+        } catch (err) {
+          ElMessage.error(`第 ${rowIndex + 1} 行照片上传失败！`)
+          this.tableData[rowIndex].photos[photoIndex].uploading = false
+        }
+      }
     },
 
     // 根据文件名推断 MIME 类型
@@ -469,17 +570,9 @@ export default {
     },
 
     // ====== 文件上传到服务端（获取 OSS 链接） ======
+    // 节流逻辑统一由 @/utils/uploadQueue 管理，保证全局所有上传请求串行 + 200ms 间隔
     uploadSingleFile(file) {
-      const formData = new FormData()
-      formData.append('file', file)
-      return request.post('/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      }).then(res => {
-        if (res.data.code === 1 && res.data.data) {
-          return res.data.data
-        }
-        throw new Error(res.data.msg || '上传失败')
-      })
+      return uploadQueuedFile(file)
     },
 
     // ====== 表格内照片添加 ======
@@ -509,6 +602,8 @@ export default {
         this.tableData[rowIndex].photos[photoIndex].uploading = false
       }).catch(() => {
         ElMessage.error('照片上传失败！')
+        // 释放预览 URL，避免内存泄漏
+        if (photoObj.preview) URL.revokeObjectURL(photoObj.preview)
         this.tableData[rowIndex].photos.splice(photoIndex, 1)
       })
     },
@@ -541,7 +636,11 @@ export default {
     // ====== 删除操作 ======
     removePhoto(rowIndex, photoIndex) {
       const photo = this.tableData[rowIndex]?.photos[photoIndex]
-      if (photo && photo.url) deleteFiles(photo.url)
+      if (photo) {
+        // 释放预览 URL，避免内存泄漏
+        if (photo.preview) URL.revokeObjectURL(photo.preview)
+        if (photo.url) deleteFiles(photo.url)
+      }
       this.tableData[rowIndex].photos.splice(photoIndex, 1)
     },
 
@@ -557,20 +656,41 @@ export default {
     },
 
     removeRow(rowIndex) {
-      // 删除该行所有已上传的源文件
       const row = this.tableData[rowIndex]
-      if (row) {
+      if (!row) return
+
+      const hasFiles = (row.photos.length > 0) || (row.docs.length > 0)
+
+      const doRemove = () => {
+        // 删除该行所有已上传的源文件
         const urls = [
           ...row.photos.filter(p => p.url).map(p => p.url),
           ...row.docs.filter(d => d.url).map(d => d.url)
         ]
         if (urls.length > 0) deleteFiles(urls)
+        // 释放该行所有照片的预览 URL，避免内存泄漏
+        row.photos.forEach(p => {
+          if (p.preview) URL.revokeObjectURL(p.preview)
+        })
+        this.tableData.splice(rowIndex, 1)
+        // 删除后若当前页无数据则回退一页
+        const totalPages = Math.ceil(this.tableData.length / this.pageSize)
+        if (this.currentPage > totalPages && totalPages > 0) {
+          this.currentPage = totalPages
+        }
       }
-      this.tableData.splice(rowIndex, 1)
-      // 删除后若当前页无数据则回退一页
-      const totalPages = Math.ceil(this.tableData.length / this.pageSize)
-      if (this.currentPage > totalPages && totalPages > 0) {
-        this.currentPage = totalPages
+
+      // 有照片/文件时二次确认，避免误删
+      if (hasFiles) {
+        ElMessageBox.confirm(
+          `确定删除第 ${rowIndex + 1} 行吗？该行已上传的照片/文件将被同步删除，且不可恢复。`,
+          '删除确认',
+          { confirmButtonText: '确定删除', cancelButtonText: '取消', type: 'warning' }
+        ).then(() => {
+          doRemove()
+        }).catch(() => {})
+      } else {
+        doRemove()
       }
     },
 
@@ -580,6 +700,12 @@ export default {
         cancelButtonText: '取消',
         type: 'warning'
       }).then(() => {
+        // 释放所有照片的预览 URL，避免内存泄漏
+        this.tableData.forEach(row => {
+          row.photos.forEach(p => {
+            if (p.preview) URL.revokeObjectURL(p.preview)
+          })
+        })
         // 清空前删除所有已上传的源文件
         const urls = []
         this.tableData.forEach(row => {
@@ -604,7 +730,7 @@ export default {
       }))
     },
 
-    // ====== 确认上传（暂不对接后端） ======
+    // ====== 确认上传 ======
     handleUpload() {
       // 校验数据
       for (let i = 0; i < this.tableData.length; i++) {
@@ -632,6 +758,12 @@ export default {
       request.post('/trbsts/batch', submitData).then(res => {
         if (res.data.code === 1) {
           ElMessage.success(`成功上传 ${submitData.length} 条排查记录！`)
+          // 释放所有照片的预览 URL，避免内存泄漏
+          this.tableData.forEach(row => {
+            row.photos.forEach(p => {
+              if (p.preview) URL.revokeObjectURL(p.preview)
+            })
+          })
           // 提交成功后清空表格，避免重复提交
           this.tableData = []
           this.currentPage = 1
@@ -643,7 +775,127 @@ export default {
       }).finally(() => {
         this.isUploading = false
       })
-    }
+    },
+    // ====== 新增船型 ======
+    addShipType() {
+      this.shipTypeDialogVisible = true
+    },
+    cancelAddShip() {
+      this.shipTypeDialogVisible = false
+      this.newShipName = ''
+    },
+    confirmAddShip() {
+      const name = this.newShipName.trim()
+      if (!name) {
+        ElMessage.warning('请输入船型名称！')
+        return
+      }
+      this.addShipSubmitting = true
+      request.put('/ships', { name }).then(res => {
+        if (res.data.code === 1) {
+          ElMessage.success('添加船型成功！')
+          this.shipTypeDialogVisible = false
+          this.newShipName = ''
+          this.fetchShips()
+        } else {
+          ElMessage.error(res.data.msg || '添加船型失败！')
+        }
+      }).catch(() => {
+        ElMessage.error('添加船型失败，请重试！')
+      }).finally(() => {
+        this.addShipSubmitting = false
+      })
+    },
+
+    // ====== 批量添加未匹配船型 ======
+    showUnmatchedShipsDialog(shipNames) {
+      this.unmatchedShips = shipNames.map(name => ({ name, checked: true }))
+      this.unmatchedShipsDialogVisible = true
+    },
+    toggleAllUnmatchedShips(checked) {
+      this.unmatchedShips.forEach(item => {
+        item.checked = checked
+      })
+    },
+    // 延时函数（用于请求节流）
+    sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms))
+    },
+    async batchAddUnmatchedShips() {
+      const selectedShips = this.unmatchedShips.filter(item => item.checked)
+      if (selectedShips.length === 0) {
+        ElMessage.warning('请至少选择一个船型！')
+        return
+      }
+
+      this.batchAddShipsSubmitting = true
+      this.batchAddProgress = 0
+      let successCount = 0
+      let failCount = 0
+      const totalCount = selectedShips.length
+      const delay = 200 // 每次请求间隔 200ms，确保每秒不超过5次
+
+      // 逐个添加船型（串行执行 + 节流，避免触发后端速率限制）
+      for (let i = 0; i < selectedShips.length; i++) {
+        const item = selectedShips[i]
+        try {
+          const res = await request.put('/ships', { name: item.name })
+          if (res.data.code === 1) {
+            successCount++
+          } else {
+            failCount++
+          }
+        } catch (err) {
+          failCount++
+        }
+
+        // 更新进度
+        this.batchAddProgress = Math.round(((i + 1) / totalCount) * 100)
+
+        // 请求节流：如果不是最后一个，等待 200ms
+        if (i < selectedShips.length - 1) {
+          await this.sleep(delay)
+        }
+      }
+
+      this.batchAddShipsSubmitting = false
+      this.batchAddProgress = -1
+
+      // 显示结果
+      if (successCount > 0 && failCount === 0) {
+        ElMessage.success(`成功添加 ${successCount} 个船型！`)
+      } else if (successCount > 0 && failCount > 0) {
+        ElMessage.warning(`成功添加 ${successCount} 个船型，失败 ${failCount} 个`)
+      } else if (failCount > 0) {
+        ElMessage.error('批量添加船型失败！')
+        return
+      }
+
+      // 关闭弹窗
+      this.unmatchedShipsDialogVisible = false
+      this.unmatchedShips = []
+
+      // 刷新船型列表并重新匹配表格
+      await this.fetchShips()
+      this.rematchTableShips()
+    },
+    rematchTableShips() {
+      // 重新匹配表格中的船型（不区分大小写）
+      this.tableData.forEach(row => {
+        if (!row.shipId && row.shipName) {
+          const matchedShip = this.shipList.find(s => s.name.toLowerCase() === row.shipName.toLowerCase())
+          if (matchedShip) {
+            row.shipId = matchedShip.id
+          }
+        }
+      })
+
+      // 检查是否还有未匹配的船型
+      const unmatched = this.tableData.filter(r => !r.shipId).length
+      if (unmatched > 0) {
+        ElMessage.info(`还有 ${unmatched} 条记录船型未匹配，请手动选择！`)
+      }
+    },
   }
 }
 </script>
@@ -680,15 +932,18 @@ export default {
   color: #999;
 }
 
-/* 示例文件下载按钮 */
-.sample-btn {
+/* 头部操作按钮组 */
+.header-actions {
+  display: flex;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.header-btn {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   padding: 8px 16px;
-  border: 1px solid #3584e4;
-  background: #f0f7ff;
-  color: #1a5fb4;
   border-radius: 8px;
   font-size: 13px;
   font-weight: 500;
@@ -696,21 +951,46 @@ export default {
   transition: all 0.25s;
   white-space: nowrap;
   flex-shrink: 0;
+}
+
+.header-btn-icon {
+  flex-shrink: 0;
+}
+
+/* 新增船型按钮（主操作-实心渐变） */
+.btn-add-ship {
+  border: none;
+  background: linear-gradient(135deg, #3584e4, #1a5fb4);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(53, 132, 228, 0.3);
+}
+
+.btn-add-ship:hover {
+  background: linear-gradient(135deg, #1a5fb4, #14478a);
+  box-shadow: 0 4px 14px rgba(53, 132, 228, 0.45);
+  transform: translateY(-1px);
+}
+
+.btn-add-ship:active {
+  transform: translateY(0);
+}
+
+/* 下载示例文件按钮（次操作-描边） */
+.btn-sample {
+  border: 1px solid #3584e4;
+  background: #f0f7ff;
+  color: #1a5fb4;
   box-shadow: 0 2px 6px rgba(53, 132, 228, 0.12);
 }
 
-.sample-btn:hover {
+.btn-sample:hover {
   background: #3584e4;
   color: #fff;
   box-shadow: 0 4px 12px rgba(53, 132, 228, 0.3);
 }
 
-.sample-btn:active {
+.btn-sample:active {
   transform: translateY(1px);
-}
-
-.sample-icon {
-  flex-shrink: 0;
 }
 
 /* Excel 上传区 */
@@ -887,6 +1167,32 @@ export default {
   justify-content: center;
 }
 
+/* loading 旋转图标 */
+.loading-spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.loading-spinner.small {
+  width: 12px;
+  height: 12px;
+  border-width: 1.5px;
+  border-color: rgba(255, 144, 0, 0.3);
+  border-top-color: #ff9900;
+  vertical-align: middle;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .thumb-remove {
   position: absolute;
   top: 1px;
@@ -998,5 +1304,57 @@ export default {
   display: flex;
   justify-content: center;
   margin-top: 16px;
+}
+
+/* 未匹配船型弹窗 */
+.unmatched-ships-header {
+  margin-bottom: 16px;
+}
+
+.unmatched-ships-tip {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  color: #666;
+  line-height: 1.6;
+}
+
+.unmatched-ships-list {
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 12px;
+  background: #f5f7fa;
+  border-radius: 6px;
+}
+
+.unmatched-ship-item {
+  display: flex;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  background: #fff;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.unmatched-ship-item:last-child {
+  margin-bottom: 0;
+}
+
+.unmatched-ship-item:hover {
+  background: #f0f7ff;
+}
+
+/* 批量添加进度条 */
+.batch-progress-wrapper {
+  margin-top: 16px;
+  padding: 12px 16px;
+  background: #f0f7ff;
+  border-radius: 6px;
+}
+
+.batch-progress-text {
+  margin: 8px 0 0 0;
+  font-size: 13px;
+  color: #1a5fb4;
+  text-align: center;
 }
 </style>

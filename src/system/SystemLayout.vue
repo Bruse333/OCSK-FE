@@ -67,7 +67,11 @@
 
       <!-- 内容区域 -->
       <main class="content-area">
-        <router-view />
+        <router-view v-slot="{ Component }">
+          <keep-alive>
+            <component :is="Component" />
+          </keep-alive>
+        </router-view>
       </main>
 
       <!-- 备案信息 

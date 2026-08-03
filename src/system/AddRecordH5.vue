@@ -138,6 +138,7 @@
 import request from '@/utils/request'
 import { getPrivilege } from '@/utils/token'
 import { deleteFiles } from '@/utils/file'
+import { uploadFile } from '@/utils/uploadQueue'
 import { ElNotification } from 'element-plus'
 export default {
   name: 'AddRecordPageH5',
@@ -223,16 +224,7 @@ export default {
       if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
       return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
     },
-    uploadFile(file) {
-      const formData = new FormData()
-      formData.append('file', file)
-      return request.post('/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      }).then(res => {
-        if (res.data.code === 1 && res.data.data) return res.data.data
-        throw new Error(res.data.msg || '上传失败')
-      })
-    },
+    // ====== 文件上传（节流逻辑由 @/utils/uploadQueue 统一管理） ======
     choosePhoto(e) {
       const files = Array.from(e.target.files)
       e.target.value = ''
@@ -244,7 +236,7 @@ export default {
         const preview = URL.createObjectURL(file)
         const baseLen = this.photoList.length
         this.photoList.push({ preview, url: '', uploading: true })
-        this.uploadFile(file).then(url => {
+        uploadFile(file).then(url => {
           this.photoList[baseLen].url = url
           this.photoList[baseLen].uploading = false
         }).catch(() => {
@@ -261,7 +253,7 @@ export default {
       files.forEach(file => {
         const baseLen = this.fileList.length
         this.fileList.push({ name: file.name, sizeText: this.formatFileSize(file.size), url: '', uploading: true })
-        this.uploadFile(file).then(url => {
+        uploadFile(file).then(url => {
           this.fileList[baseLen].url = url
           this.fileList[baseLen].uploading = false
         }).catch(() => {

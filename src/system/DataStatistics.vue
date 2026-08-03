@@ -31,6 +31,9 @@ export default {
     this.fetchData()
     window.addEventListener('resize', this.handleResize)
   },
+  activated() {
+    this.fetchData()
+  },
   beforeUnmount() {
     window.removeEventListener('resize', this.handleResize)
     if (this.chart) {
