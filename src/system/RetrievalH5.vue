@@ -93,7 +93,7 @@
       <p>正在检索...</p>
     </div>
 
-    <!-- 船型选择器弹窗 -->
+    <!-- 船型选择器弹窗（底部弹出式） -->
     <div class="h5-modal-overlay" v-if="showShipPicker" @click.self="showShipPicker = false">
       <div class="h5-picker-dialog">
         <div class="h5-picker-header">
@@ -140,16 +140,18 @@
       </div>
     </div>
 
-    <!-- 详情弹窗 -->
+    <!-- 详情弹窗（卡片化，与 PC 端视觉一致） -->
     <div class="h5-modal-overlay" v-if="showDetailModal" @click.self="closeDetail">
       <div class="h5-dialog h5-detail-dialog">
         <div class="h5-dialog-header">
-          <h3>{{ currentDetail.name }}</h3>
+          <div class="h5-detail-header-main">
+            <h3>{{ currentDetail.name }}</h3>
+            <span class="h5-detail-time">创建于 {{ currentDetail.createTimeStr }}</span>
+          </div>
           <button class="h5-dialog-close" @click="closeDetail">×</button>
         </div>
         <div class="h5-dialog-body">
-          <p class="h5-detail-time">{{ currentDetail.createTimeStr }}</p>
-          <!-- 图文/流程模式切换 Tab（仅该记录绑定了流程时显示） -->
+          <!-- 图文/流程模式切换 Tab -->
           <div class="h5-detail-tabs" v-if="currentDetail.flowUrl">
             <button
               class="h5-detail-tab"
@@ -167,36 +169,50 @@
           <template v-if="!currentDetail.flowUrl || detailTab === 'text'">
             <div class="h5-detail-block">
               <div class="h5-detail-title">故障现象</div>
-              <p>{{ currentDetail.phenomenon }}</p>
+              <p class="h5-detail-text">{{ currentDetail.phenomenon }}</p>
             </div>
             <div class="h5-detail-block">
               <div class="h5-detail-title">排查步骤</div>
               <div class="h5-steps">
                 <div v-for="(step, i) in currentDetail.shootingSteps" :key="i" class="h5-step">
                   <span class="h5-step-index">{{ i + 1 }}</span>
-                  <span>{{ step }}</span>
+                  <span class="h5-step-text">{{ step }}</span>
                 </div>
               </div>
             </div>
             <div class="h5-detail-block" v-if="currentDetail.photoList && currentDetail.photoList.length > 0">
-              <div class="h5-detail-title">图片附件</div>
+              <div class="h5-detail-title">图片附件 <span class="h5-detail-count">{{ currentDetail.photoList.length }} 张</span></div>
               <div class="h5-photos">
-                <a v-for="(url, i) in currentDetail.photoList" :key="i" :href="url" target="_blank">
-                  <img :src="url" alt="照片" />
-                </a>
+                <el-image
+                  v-for="(url, i) in currentDetail.photoList"
+                  :key="i"
+                  :src="url"
+                  :preview-src-list="currentDetail.photoList"
+                  :initial-index="i"
+                  fit="cover"
+                  class="h5-photo-item"
+                  :alt="`照片 ${i + 1}`"
+                />
               </div>
             </div>
             <div class="h5-detail-block" v-if="currentDetail.docList && currentDetail.docList.length > 0">
-              <div class="h5-detail-title">文档附件</div>
+              <div class="h5-detail-title">文档附件 <span class="h5-detail-count">{{ currentDetail.docList.length }} 个</span></div>
               <div class="h5-docs">
-                <a v-for="(url, i) in currentDetail.docList" :key="i" :href="url" target="_blank" class="h5-doc-link">
-                  📄 文件{{ i + 1 }}
+                <a
+                  v-for="(url, i) in currentDetail.docList"
+                  :key="i"
+                  :href="url"
+                  target="_blank"
+                  class="h5-doc-card"
+                >
+                  <span class="h5-doc-icon">📄</span>
+                  <span class="h5-doc-name">文件 {{ i + 1 }}</span>
                 </a>
               </div>
             </div>
           </template>
 
-          <!-- 流程模式：加载 flowUrl 并用 FlowRunner 播放 -->
+          <!-- 流程模式 -->
           <div v-else class="h5-flow-wrap">
             <div v-if="flowLoading" class="h5-loading-state">
               <div class="h5-spinner"></div>
@@ -204,7 +220,7 @@
             </div>
             <div v-else-if="flowError" class="h5-loading-state">
               <p>{{ flowError }}</p>
-              <button class="h5-btn-cancel" @click="loadDetailFlow">重试</button>
+              <button class="h5-btn-primary" @click="loadDetailFlow">重试</button>
             </div>
             <FlowRunner v-else-if="detailFlow" :flow="detailFlow" />
           </div>
@@ -253,7 +269,7 @@
             <label>文档附件</label>
             <div class="h5-file-list" v-if="editForm.fileList.length > 0">
               <div v-for="(file, i) in editForm.fileList" :key="i" class="h5-file-item">
-                <span>{{ file.uploading ? '⏳' : '📄' }} {{ file.name }}</span>
+                <span>{{ file.uploading ? '⏳' : '📄' }} 文件 {{ i + 1 }}</span>
                 <button class="h5-upload-del" @click="removeEditFile(i)">×</button>
               </div>
             </div>
@@ -269,31 +285,11 @@
         </div>
       </div>
     </div>
-
-    <!-- 删除确认 -->
-    <div class="h5-modal-overlay" v-if="showDeleteConfirm" @click.self="showDeleteConfirm = false">
-      <div class="h5-confirm-dialog">
-        <p class="h5-confirm-msg">确定删除该记录吗？</p>
-        <div class="h5-confirm-btns">
-          <button class="h5-btn-cancel" @click="showDeleteConfirm = false">取消</button>
-          <button class="h5-btn-delete" @click="confirmDelete">删除</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- 提示弹框 -->
-    <transition name="fade">
-      <div v-if="alertBox.show" class="h5-alert-overlay" @click.self="closeAlert">
-        <div class="h5-alert-dialog">
-          <p class="h5-alert-msg">{{ alertBox.msg }}</p>
-          <button class="h5-alert-btn" @click="closeAlert">确定</button>
-        </div>
-      </div>
-    </transition>
   </div>
 </template>
 
 <script>
+import { ElMessage, ElMessageBox } from 'element-plus'
 import request from '@/utils/request'
 import { getUsername, getPrivilege } from '@/utils/token'
 import { deleteFiles } from '@/utils/file'
@@ -322,7 +318,6 @@ export default {
       hasSearched: false,
       showDetailModal: false,
       currentDetail: null,
-      // 详情弹窗模式：text 图文 / flow 流程（仅 flowUrl 非空时可切换）
       detailTab: 'text',
       flowLoading: false,
       flowError: '',
@@ -339,10 +334,8 @@ export default {
         fileList: []
       },
       privilege: 1,
-      showDeleteConfirm: false,
       deleteIndex: -1,
-      editDeletedFiles: [],
-      alertBox: { show: false, msg: '' }
+      editDeletedFiles: []
     }
   },
   created() {
@@ -350,21 +343,13 @@ export default {
     this.fetchShips()
   },
   methods: {
-    showAlert(msg) {
-      this.alertBox.msg = msg
-      this.alertBox.show = true
-    },
-    closeAlert() {
-      this.alertBox.show = false
-    },
-
     fetchShips() {
       request.get('/ships').then(res => {
         if (res.data.code === 1 && res.data.data) {
           this.shipList = res.data.data.map(item => ({ shipId: item.id, name: item.name }))
         }
       }).catch(() => {
-        this.showAlert('获取船型列表失败！')
+        ElMessage({ message: '获取船型列表失败！', type: 'error' })
       })
     },
     selectShip(id, name) {
@@ -387,7 +372,7 @@ export default {
 
     handleSearch() {
       if (!this.selectedShipId) {
-        this.showAlert('请选择船型！')
+        ElMessage({ message: '请选择船型！', type: 'warning' })
         return
       }
       this.currentPage = 1
@@ -410,7 +395,6 @@ export default {
         rows.forEach(row => {
           row.photoList = Array.isArray(row.photo) ? row.photo : []
           row.docList = Array.isArray(row.doc) ? row.doc : []
-          // 后端检索时同步返回的流程文件地址，非空时详情弹窗支持"流程模式"
           row.flowUrl = row.flowUrl || ''
           row.shootingPreview = this.getShootingPreview(row.shooting)
           row.createTimeStr = this.formatDate(row.createTime)
@@ -463,7 +447,6 @@ export default {
         })
       }
       this.currentDetail = { ...item, shootingSteps: steps }
-      // 每次打开默认图文模式，并重置流程状态（流程按需懒加载）
       this.detailTab = 'text'
       this.detailFlow = null
       this.flowLoading = false
@@ -478,14 +461,12 @@ export default {
       this.flowLoading = false
       this.flowError = ''
     },
-    /** 切换到流程模式：首次进入时懒加载流程文件 */
     switchToFlowMode() {
       this.detailTab = 'flow'
       if (!this.detailFlow && !this.flowLoading && !this.flowError) {
         this.loadDetailFlow()
       }
     },
-    /** 下载并解析当前记录的流程文件 */
     async loadDetailFlow() {
       if (!this.currentDetail || !this.currentDetail.flowUrl) return
       this.flowLoading = true
@@ -501,7 +482,7 @@ export default {
         }
         this.detailFlow = flow
         if (errors.length > 0) {
-          this.showAlert(`流程已加载，${errors.length} 处自动修正`)
+          ElMessage({ message: `流程已加载，${errors.length} 处自动修正`, type: 'info' })
         }
       } catch (e) {
         this.flowError = '流程文件加载失败，请检查网络后重试'
@@ -512,7 +493,7 @@ export default {
 
     openEdit(index) {
       if (this.privilege != 3) {
-        this.showAlert('权限不足')
+        ElMessage({ message: '权限不足', type: 'warning' })
         return
       }
       const item = this.resultList[index]
@@ -564,17 +545,16 @@ export default {
       if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
       return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
     },
-    // ====== 文件上传（节流逻辑由 @/utils/uploadQueue 统一管理） ======
     chooseEditPhoto(e) {
       const files = Array.from(e.target.files)
       e.target.value = ''
       if (this.editForm.photoList.length + files.length > 9) {
-        this.showAlert('最多上传9张照片！')
+        ElMessage({ message: '最多上传9张照片！', type: 'warning' })
         return
       }
       const maxSize = 2 * 1024 * 1024
       for (const f of files) {
-        if (f.size > maxSize) { this.showAlert('单张不能超过2M'); return }
+        if (f.size > maxSize) { ElMessage({ message: '单张不能超过2M', type: 'warning' }); return }
       }
       files.forEach(file => {
         const preview = URL.createObjectURL(file)
@@ -593,7 +573,7 @@ export default {
       e.target.value = ''
       const maxSize = 2 * 1024 * 1024
       for (const f of files) {
-        if (f.size > maxSize) { this.showAlert('单个文件不能超过2M'); return }
+        if (f.size > maxSize) { ElMessage({ message: '单个文件不能超过2M', type: 'warning' }); return }
       }
       files.forEach(file => {
         const baseLen = this.editForm.fileList.length
@@ -610,11 +590,11 @@ export default {
       return this.editForm.steps.map(s => s.trim()).filter(s => s).join('；')
     },
     saveEdit() {
-      if (!this.editForm.phenomenon.trim()) { this.showAlert('请输入故障现象'); return }
+      if (!this.editForm.phenomenon.trim()) { ElMessage({ message: '请输入故障现象', type: 'warning' }); return }
       const shootingStr = this.joinEditSteps()
-      if (!shootingStr) { this.showAlert('请至少输入一步排查内容'); return }
-      for (const p of this.editForm.photoList) { if (p.uploading) { this.showAlert('照片上传中'); return } }
-      for (const f of this.editForm.fileList) { if (f.uploading) { this.showAlert('文件上传中'); return } }
+      if (!shootingStr) { ElMessage({ message: '请至少输入一步排查内容', type: 'warning' }); return }
+      for (const p of this.editForm.photoList) { if (p.uploading) { ElMessage({ message: '照片上传中', type: 'warning' }); return } }
+      for (const f of this.editForm.fileList) { if (f.uploading) { ElMessage({ message: '文件上传中', type: 'warning' }); return } }
       const submitData = {
         id: this.editForm.id,
         phenomenon: this.editForm.phenomenon.trim(),
@@ -624,47 +604,48 @@ export default {
       }
       request.post('/trbsts', submitData).then(res => {
         if (res.data.code === 1) {
-          // 提交编辑期间被删除的源文件到后端清理
           if (this.editDeletedFiles.length > 0) {
             deleteFiles(this.editDeletedFiles)
             this.editDeletedFiles = []
           }
-          this.showAlert('保存成功')
+          ElMessage({ message: '保存成功', type: 'success' })
           this.showEditModal = false
           this.fetchData()
         } else {
-          this.showAlert(res.data.msg || '保存失败')
+          ElMessage({ message: res.data.msg || '保存失败', type: 'error' })
         }
       }).catch(() => {
-        this.showAlert('保存失败')
+        ElMessage({ message: '保存失败', type: 'error' })
       })
     },
 
     handleDelete(index) {
-      if (this.privilege < 3) { this.showAlert('权限不足'); return }
-      this.deleteIndex = index
-      this.showDeleteConfirm = true
-    },
-    confirmDelete() {
-      this.showDeleteConfirm = false
-      const item = this.resultList[this.deleteIndex]
-      if (!item || !item.id) return
-      request.delete('/trbsts', { params: { id: item.id } }).then(res => {
-        if (res.data.code === 1) {
-          this.showAlert('删除成功')
-          // 删除该记录关联的所有源文件（图片、文档、绑定的流程 JSON）
-          const urls = [
-            ...(item.photoList || []),
-            ...(item.docList || [])
-          ]
-          if (item.flowUrl) urls.push(item.flowUrl)
-          if (urls.length > 0) deleteFiles(urls)
-          this.fetchData()
-        } else {
-          this.showAlert(res.data.msg || '删除失败')
-        }
+      if (this.privilege < 3) { ElMessage({ message: '权限不足', type: 'warning' }); return }
+      const item = this.resultList[index]
+      ElMessageBox.confirm('确定删除该排查记录吗？删除后不可恢复。', '提示', {
+        confirmButtonText: '删除',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => {
+        if (!item || !item.id) return
+        request.delete('/trbsts', { params: { id: item.id } }).then(res => {
+          if (res.data.code === 1) {
+            ElMessage({ message: '删除成功', type: 'success' })
+            const urls = [
+              ...(item.photoList || []),
+              ...(item.docList || [])
+            ]
+            if (item.flowUrl) urls.push(item.flowUrl)
+            if (urls.length > 0) deleteFiles(urls)
+            this.fetchData()
+          } else {
+            ElMessage({ message: res.data.msg || '删除失败', type: 'error' })
+          }
+        }).catch(() => {
+          ElMessage({ message: '删除失败', type: 'error' })
+        })
       }).catch(() => {
-        this.showAlert('删除失败')
+        // 用户取消
       })
     }
   }
@@ -679,7 +660,7 @@ export default {
 /* 搜索卡片 */
 .h5-search-card {
   background: #fff;
-  border-radius: 10px;
+  border-radius: var(--oc-radius, 10px);
   padding: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   margin-bottom: 12px;
@@ -697,14 +678,14 @@ export default {
   display: flex;
   align-items: center;
   padding: 10px 12px;
-  border: 1px solid #e0e4e8;
+  border: 1px solid var(--oc-border, #e0e4e8);
   border-radius: 8px;
-  background: #fafbfc;
+  background: var(--oc-bg-soft, #fafbfc);
 }
 
 .h5-select-label {
   font-size: 13px;
-  color: #999;
+  color: var(--oc-text-light, #999);
   margin-right: 10px;
 }
 
@@ -715,26 +696,26 @@ export default {
 }
 
 .h5-select-value.placeholder {
-  color: #999;
+  color: var(--oc-text-light, #999);
 }
 
 .h5-select-arrow {
-  color: #999;
+  color: var(--oc-text-light, #999);
   font-size: 10px;
   transform: rotate(90deg);
 }
 
 .h5-keyword-input {
   padding: 8px 12px;
-  border: 1px solid #e0e4e8;
+  border: 1px solid var(--oc-border, #e0e4e8);
   border-radius: 8px;
-  background: #fafbfc;
+  background: var(--oc-bg-soft, #fafbfc);
   min-height: 36px;
 }
 
 .h5-keyword-placeholder {
   font-size: 14px;
-  color: #999;
+  color: var(--oc-text-light, #999);
 }
 
 .h5-keyword-tags {
@@ -750,12 +731,12 @@ export default {
   border: 1px solid #b3d8ff;
   border-radius: 4px;
   font-size: 12px;
-  color: #1a5fb4;
+  color: var(--oc-primary-dark, #1a5fb4);
 }
 
 .h5-kw-more {
   font-size: 12px;
-  color: #999;
+  color: var(--oc-text-light, #999);
   padding: 3px 0;
 }
 
@@ -764,7 +745,7 @@ export default {
   padding: 11px 0;
   font-size: 15px;
   color: #fff;
-  background: linear-gradient(135deg, #3584e4, #1a5fb4);
+  background: linear-gradient(135deg, var(--oc-primary, #3584e4), var(--oc-primary-dark, #1a5fb4));
   border: none;
   border-radius: 8px;
   cursor: pointer;
@@ -774,7 +755,7 @@ export default {
 /* 统计 */
 .h5-result-stat {
   font-size: 13px;
-  color: #666;
+  color: var(--oc-text, #46587a);
   margin-bottom: 10px;
 }
 
@@ -787,7 +768,7 @@ export default {
 
 .h5-result-card {
   background: #fff;
-  border-radius: 10px;
+  border-radius: var(--oc-radius, 10px);
   padding: 14px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
@@ -798,18 +779,18 @@ export default {
   align-items: center;
   margin-bottom: 10px;
   padding-bottom: 10px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--oc-border, #f0f0f0);
 }
 
 .h5-card-name {
   font-size: 15px;
   font-weight: 600;
-  color: #333;
+  color: var(--oc-title, #333);
 }
 
 .h5-card-date {
   font-size: 12px;
-  color: #999;
+  color: var(--oc-text-light, #999);
 }
 
 .h5-card-line {
@@ -822,7 +803,7 @@ export default {
 
 .h5-card-label {
   font-size: 12px;
-  color: #1a5fb4;
+  color: var(--oc-primary-dark, #1a5fb4);
   display: block;
   margin-bottom: 2px;
 }
@@ -843,7 +824,7 @@ export default {
   gap: 10px;
   margin-top: 12px;
   padding-top: 10px;
-  border-top: 1px solid #f0f0f0;
+  border-top: 1px solid var(--oc-border, #f0f0f0);
 }
 
 .h5-card-btn {
@@ -862,13 +843,13 @@ export default {
 .h5-edit-btn {
   background: #e8f4ff;
   border-color: #b3d8ff;
-  color: #1a5fb4;
+  color: var(--oc-primary-dark, #1a5fb4);
 }
 
 .h5-delete-btn {
   background: #fef0f0;
   border-color: #fbc4c4;
-  color: #ed4014;
+  color: var(--oc-danger, #ed4014);
 }
 
 /* 分页 */
@@ -884,9 +865,9 @@ export default {
 .h5-page-btn {
   padding: 8px 16px;
   font-size: 14px;
-  color: #1a5fb4;
+  color: var(--oc-primary-dark, #1a5fb4);
   background: #fff;
-  border: 1px solid #3584e4;
+  border: 1px solid var(--oc-primary, #3584e4);
   border-radius: 6px;
   cursor: pointer;
 }
@@ -898,7 +879,7 @@ export default {
 
 .h5-page-info {
   font-size: 14px;
-  color: #666;
+  color: var(--oc-text, #46587a);
 }
 
 /* 空状态 */
@@ -906,15 +887,15 @@ export default {
 .h5-loading-state {
   text-align: center;
   padding: 50px 0;
-  color: #999;
+  color: var(--oc-text-light, #999);
   font-size: 14px;
 }
 
 .h5-spinner {
   width: 28px;
   height: 28px;
-  border: 3px solid #e0e4e8;
-  border-top-color: #1a5fb4;
+  border: 3px solid var(--oc-border, #e0e4e8);
+  border-top-color: var(--oc-primary-dark, #1a5fb4);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
   margin: 0 auto 10px;
@@ -931,7 +912,7 @@ export default {
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(10, 30, 60, 0.5);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -942,7 +923,7 @@ export default {
 
 .h5-dialog {
   background: #fff;
-  border-radius: 12px;
+  border-radius: var(--oc-radius-lg, 12px);
   width: 100%;
   max-width: 400px;
   max-height: 85vh;
@@ -951,9 +932,10 @@ export default {
   overflow: hidden;
 }
 
+/* 船型底部弹出式选择器 */
 .h5-picker-dialog {
   background: #fff;
-  border-radius: 12px 12px 0 0;
+  border-radius: var(--oc-radius-lg, 12px) var(--oc-radius-lg, 12px) 0 0;
   width: 100%;
   max-height: 60vh;
   display: flex;
@@ -963,14 +945,16 @@ export default {
   left: 0;
 }
 
+/* 弹窗头部：白色 + 底部细线（与 PC el-dialog 一致） */
 .h5-picker-header,
 .h5-dialog-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 14px 16px;
-  background: linear-gradient(135deg, #3584e4, #1a5fb4);
-  color: #fff;
+  padding: 16px;
+  background: #fff;
+  color: var(--oc-title, #1a3a6e);
+  border-bottom: 1px solid var(--oc-border, #eef1f6);
   flex-shrink: 0;
 }
 
@@ -981,13 +965,21 @@ export default {
   font-weight: 600;
 }
 
+.h5-detail-header-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
 .h5-picker-close,
 .h5-dialog-close {
   background: none;
   border: none;
-  color: #fff;
+  color: var(--oc-text-light, #999);
   font-size: 22px;
   cursor: pointer;
+  line-height: 1;
+  padding: 0;
 }
 
 .h5-picker-body {
@@ -999,12 +991,12 @@ export default {
   padding: 14px 16px;
   font-size: 15px;
   color: #333;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--oc-border, #f0f0f0);
   cursor: pointer;
 }
 
 .h5-picker-item.active {
-  color: #1a5fb4;
+  color: var(--oc-primary-dark, #1a5fb4);
   background: #e8f4ff;
   font-weight: 600;
 }
@@ -1013,12 +1005,13 @@ export default {
   flex: 1;
   overflow-y: auto;
   padding: 16px;
+  background: var(--oc-bg, #f5f7fa);
   -webkit-overflow-scrolling: touch;
 }
 
 .h5-dialog-footer {
   padding: 12px 16px;
-  border-top: 1px solid #f0f0f0;
+  border-top: 1px solid var(--oc-border, #eef1f6);
   display: flex;
   justify-content: flex-end;
   gap: 10px;
@@ -1035,13 +1028,13 @@ export default {
 
 .h5-kw-close {
   margin-left: 4px;
-  color: #999;
+  color: var(--oc-text-light, #999);
   cursor: pointer;
 }
 
 .h5-no-kw {
   font-size: 13px;
-  color: #999;
+  color: var(--oc-text-light, #999);
   margin-bottom: 16px;
 }
 
@@ -1053,7 +1046,7 @@ export default {
 .h5-kw-input {
   flex: 1;
   height: 38px;
-  border: 1px solid #e0e4e8;
+  border: 1px solid var(--oc-border, #e0e4e8);
   border-radius: 8px;
   padding: 0 12px;
   font-size: 14px;
@@ -1064,7 +1057,7 @@ export default {
   padding: 0 16px;
   font-size: 14px;
   color: #fff;
-  background: #1a5fb4;
+  background: var(--oc-primary-dark, #1a5fb4);
   border: none;
   border-radius: 8px;
   cursor: pointer;
@@ -1075,39 +1068,47 @@ export default {
   padding: 10px 0;
   font-size: 15px;
   color: #fff;
-  background: #1a5fb4;
+  background: linear-gradient(135deg, var(--oc-primary, #3584e4), var(--oc-primary-dark, #1a5fb4));
   border: none;
   border-radius: 8px;
   cursor: pointer;
 }
 
-/* 详情 */
+/* 详情弹窗 */
 .h5-detail-dialog {
   max-height: 80vh;
+}
+
+.h5-detail-time {
+  font-size: 12px;
+  color: var(--oc-text-light, #999);
+  font-weight: 400;
 }
 
 .h5-detail-tabs {
   display: flex;
   gap: 4px;
   margin-bottom: 14px;
-  border-bottom: 1px solid #f0f0f0;
+  background: #fff;
+  border-radius: 8px;
+  padding: 4px;
 }
 
 .h5-detail-tab {
   flex: 1;
   padding: 8px 0;
   font-size: 14px;
-  color: #999;
+  color: var(--oc-text-light, #999);
   background: none;
   border: none;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
+  border-radius: 6px;
   cursor: pointer;
+  transition: all 0.2s;
 }
 
 .h5-detail-tab.active {
-  color: #1a5fb4;
-  border-bottom-color: #1a5fb4;
+  color: #fff;
+  background: var(--oc-primary-dark, #1a5fb4);
   font-weight: 600;
 }
 
@@ -1119,19 +1120,16 @@ export default {
   padding: 30px 0;
 }
 
-.h5-flow-wrap .h5-btn-cancel {
+.h5-flow-wrap .h5-btn-primary {
   margin-top: 8px;
 }
 
-.h5-detail-time {
-  font-size: 12px;
-  color: #999;
-  margin-top: 0;
-  margin-bottom: 12px;
-}
-
+/* 详情卡片区块（与 PC 端卡片风格一致） */
 .h5-detail-block {
-  margin-bottom: 16px;
+  background: #fff;
+  border-radius: 8px;
+  padding: 14px;
+  margin-bottom: 12px;
 }
 
 .h5-detail-block:last-child {
@@ -1141,13 +1139,22 @@ export default {
 .h5-detail-title {
   font-size: 14px;
   font-weight: 600;
-  color: #1a5fb4;
-  margin-bottom: 8px;
+  color: var(--oc-title, #1a3a6e);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
-.h5-detail-block p {
+.h5-detail-count {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--oc-text-light, #999);
+}
+
+.h5-detail-text {
   font-size: 14px;
-  color: #555;
+  color: var(--oc-text, #46587a);
   line-height: 1.5;
   margin: 0;
 }
@@ -1163,7 +1170,7 @@ export default {
   align-items: flex-start;
   gap: 8px;
   font-size: 14px;
-  color: #555;
+  color: var(--oc-text, #46587a);
   line-height: 1.5;
 }
 
@@ -1171,7 +1178,7 @@ export default {
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  background: #1a5fb4;
+  background: linear-gradient(135deg, var(--oc-primary, #3584e4), var(--oc-primary-dark, #1a5fb4));
   color: #fff;
   font-size: 12px;
   display: flex;
@@ -1180,17 +1187,21 @@ export default {
   flex-shrink: 0;
 }
 
+.h5-step-text {
+  flex: 1;
+}
+
 .h5-photos {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
 }
 
-.h5-photos img {
+.h5-photo-item {
   width: 80px;
   height: 80px;
-  object-fit: cover;
   border-radius: 6px;
+  overflow: hidden;
 }
 
 .h5-docs {
@@ -1199,14 +1210,30 @@ export default {
   gap: 8px;
 }
 
-.h5-doc-link {
-  padding: 8px 12px;
-  background: #fff7e6;
-  border: 1px solid #ffd591;
-  border-radius: 6px;
+.h5-doc-card {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 12px;
+  background: #fff;
+  border: 1px solid var(--oc-border, #eef1f6);
+  border-radius: 8px;
   font-size: 13px;
-  color: #333;
+  color: var(--oc-text, #46587a);
   text-decoration: none;
+  transition: all 0.2s;
+}
+
+.h5-doc-card:active {
+  background: var(--oc-bg, #f5f7fa);
+}
+
+.h5-doc-icon {
+  font-size: 18px;
+}
+
+.h5-doc-name {
+  font-weight: 500;
 }
 
 /* 编辑表单 */
@@ -1222,20 +1249,21 @@ export default {
 }
 
 .h5-required {
-  color: #ed4014;
+  color: var(--oc-danger, #ed4014);
 }
 
 .h5-textarea {
   width: 100%;
   min-height: 80px;
   padding: 10px;
-  border: 1px solid #e0e4e8;
+  border: 1px solid var(--oc-border, #e0e4e8);
   border-radius: 8px;
   font-size: 14px;
   box-sizing: border-box;
   resize: vertical;
   outline: none;
   font-family: inherit;
+  background: var(--oc-bg-soft, #fafbfc);
 }
 
 .h5-edit-steps {
@@ -1253,19 +1281,20 @@ export default {
 .h5-step-input {
   flex: 1;
   height: 38px;
-  border: 1px solid #e0e4e8;
+  border: 1px solid var(--oc-border, #e0e4e8);
   border-radius: 8px;
   padding: 0 10px;
   font-size: 14px;
   outline: none;
   box-sizing: border-box;
+  background: var(--oc-bg-soft, #fafbfc);
 }
 
 .h5-step-del {
   background: none;
   border: none;
   font-size: 18px;
-  color: #ed4014;
+  color: var(--oc-danger, #ed4014);
   cursor: pointer;
 }
 
@@ -1273,9 +1302,9 @@ export default {
   width: 100%;
   padding: 8px 0;
   font-size: 13px;
-  color: #1a5fb4;
+  color: var(--oc-primary-dark, #1a5fb4);
   background: none;
-  border: 1px dashed #1a5fb4;
+  border: 1px dashed var(--oc-primary-dark, #1a5fb4);
   border-radius: 6px;
   cursor: pointer;
 }
@@ -1334,14 +1363,14 @@ export default {
 .h5-upload-add {
   width: 70px;
   height: 70px;
-  border: 1px dashed #d0d5dd;
+  border: 1px dashed var(--oc-border, #d0d5dd);
   border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 24px;
-  color: #999;
-  background: #fafbfc;
+  color: var(--oc-text-light, #999);
+  background: var(--oc-bg-soft, #fafbfc);
   cursor: pointer;
 }
 
@@ -1360,16 +1389,16 @@ export default {
   justify-content: space-between;
   align-items: center;
   padding: 8px 10px;
-  background: #fafbfc;
+  background: var(--oc-bg-soft, #fafbfc);
   border-radius: 6px;
   margin-bottom: 6px;
   font-size: 13px;
   color: #333;
 }
 
+/* 按钮统一渐变蓝风格 */
 .h5-btn-cancel,
-.h5-btn-submit,
-.h5-btn-delete {
+.h5-btn-submit {
   padding: 8px 22px;
   font-size: 14px;
   border-radius: 6px;
@@ -1377,94 +1406,24 @@ export default {
 }
 
 .h5-btn-cancel {
-  color: #1a5fb4;
+  color: var(--oc-primary-dark, #1a5fb4);
   background: #fff;
-  border: 1px solid #3584e4;
+  border: 1px solid var(--oc-primary, #3584e4);
 }
 
 .h5-btn-submit {
   color: #fff;
-  background: #1a5fb4;
+  background: linear-gradient(135deg, var(--oc-primary, #3584e4), var(--oc-primary-dark, #1a5fb4));
   border: none;
 }
 
-.h5-btn-delete {
+.h5-btn-primary {
+  padding: 8px 22px;
+  font-size: 14px;
   color: #fff;
-  background: #ed4014;
+  background: linear-gradient(135deg, var(--oc-primary, #3584e4), var(--oc-primary-dark, #1a5fb4));
   border: none;
-}
-
-/* 删除确认 */
-.h5-confirm-dialog {
-  background: #fff;
-  border-radius: 12px;
-  padding: 20px;
-  width: 100%;
-  max-width: 300px;
-}
-
-.h5-confirm-msg {
-  font-size: 15px;
-  color: #333;
-  text-align: center;
-  margin: 0 0 20px;
-}
-
-.h5-confirm-btns {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-}
-
-/* 提示弹框 */
-.h5-alert-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(0, 0, 0, 0.45);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 2000;
-}
-
-.h5-alert-dialog {
-  background: #fff;
-  border-radius: 10px;
-  width: 80vw;
-  max-width: 300px;
-  overflow: hidden;
-}
-
-.h5-alert-msg {
-  margin: 0;
-  padding: 24px 20px;
-  font-size: 15px;
-  color: #333;
-  text-align: center;
-  line-height: 1.5;
-}
-
-.h5-alert-btn {
-  display: block;
-  width: 100%;
-  padding: 12px 0;
-  font-size: 15px;
-  color: #fff;
-  background: #1a5fb4;
-  border: none;
+  border-radius: 6px;
   cursor: pointer;
-}
-
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.25s;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
 }
 </style>

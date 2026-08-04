@@ -180,20 +180,20 @@ export default {
   margin: 0;
   font-size: 20px;
   font-weight: 600;
-  color: #1a3a6e;
+  color: var(--oc-title, #1a3a6e);
 }
 
 .page-subtitle {
   margin: 6px 0 0;
   font-size: 13px;
-  color: #999;
+  color: var(--oc-text-light, #999);
 }
 
 .chart-card {
-  background: #fff;
-  border-radius: 10px;
+  background: var(--oc-bg-white, #fff);
+  border-radius: var(--oc-radius, 10px);
   padding: 24px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--oc-shadow, 0 2px 12px rgba(0, 0, 0, 0.06));
   position: relative;
 }
 
@@ -211,7 +211,7 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #999;
+  color: var(--oc-text-light, #999);
   font-size: 14px;
 }
 </style>

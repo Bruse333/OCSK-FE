@@ -46,7 +46,7 @@
         </template>
       </nav>
       <div class="sidebar-footer" v-if="!isCollapsed">
-        <button class="btn-back-home" @click="backToHome">返回首页</button>
+        <el-button plain class="btn-back-home" @click="backToHome">返回首页</el-button>
       </div>
     </aside>
 
@@ -54,14 +54,13 @@
     <div class="main-area">
       <!-- 顶部栏 -->
       <header class="top-bar">
-        <button class="btn-collapse" @click="toggleSidebar">
-          <span v-if="isCollapsed">&#9776;</span>
-          <span v-else>&#9776;</span>
-        </button>
+        <el-button class="btn-collapse" circle @click="toggleSidebar">
+          <el-icon><Menu /></el-icon>
+        </el-button>
         <h1 class="top-title">{{ pageTitle }}</h1>
         <div class="top-right">
           <span class="top-username">用户: [{{ username }}]</span>
-          <button class="btn-logout" @click="handleLogout">退出登录</button>
+          <el-button @click="handleLogout">退出登录</el-button>
         </div>
       </header>
 
@@ -92,6 +91,7 @@
 </template>
 
 <script>
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { getUsername, getPrivilege, removeToken, removeUsername, removePrivilege } from '@/utils/token'
 
 export default {
@@ -214,10 +214,19 @@ export default {
       this.$router.push('/')
     },
     handleLogout() {
-      removeToken()
-      removeUsername()
-      removePrivilege()
-      this.$router.push('/login')
+      ElMessageBox.confirm('确定要退出登录吗？', '退出登录', {
+        confirmButtonText: '确认',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => {
+        removeToken()
+        removeUsername()
+        removePrivilege()
+        ElMessage({ message: '已退出登录！', type: 'success' })
+        this.$router.push('/login')
+      }).catch(() => {
+        // 用户取消
+      })
     }
   }
 }
@@ -233,7 +242,7 @@ export default {
 /* 侧边栏 */
 .sidebar {
   width: 220px;
-  background: linear-gradient(180deg, #87CEEB 0%, #5FB0E6 100%);
+  background: linear-gradient(180deg, var(--oc-primary-lighter, #87CEEB) 0%, var(--oc-primary-light, #5FB0E6) 100%);
   display: flex;
   flex-direction: column;
   transition: width 0.3s ease;
@@ -254,14 +263,14 @@ export default {
 }
 
 .sidebar-logo {
-  color: #1a3a6e;
+  color: var(--oc-title, #1a3a6e);
   font-size: 20px;
   font-weight: 600;
   letter-spacing: 2px;
 }
 
 .sidebar-logo-mini {
-  color: #1a3a6e;
+  color: var(--oc-title, #1a3a6e);
   font-size: 18px;
   font-weight: 600;
 }
@@ -285,13 +294,13 @@ export default {
 
 .menu-item:hover {
   background: rgba(255, 255, 255, 0.25);
-  color: #1a3a6e;
+  color: var(--oc-title, #1a3a6e);
 }
 
 .menu-item.active {
   background: rgba(255, 255, 255, 0.35);
-  color: #1a3a6e;
-  border-left: 3px solid #1a3a6e;
+  color: var(--oc-title, #1a3a6e);
+  border-left: 3px solid var(--oc-title, #1a3a6e);
   padding-left: 21px;
   font-weight: 600;
 }
@@ -304,7 +313,7 @@ export default {
 .sidebar.collapsed .menu-item.active {
   padding-left: 0;
   border-left: none;
-  border-bottom: 3px solid #1a3a6e;
+  border-bottom: 3px solid var(--oc-title, #1a3a6e);
 }
 
 .menu-icon {
@@ -360,7 +369,7 @@ export default {
 
 .menu-item-child.active {
   background: rgba(255, 255, 255, 0.35);
-  border-left: 3px solid #1a3a6e;
+  border-left: 3px solid var(--oc-title, #1a3a6e);
   padding-left: 53px;
   font-weight: 600;
 }
@@ -378,21 +387,9 @@ export default {
   border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+/* 返回首页按钮：在侧边栏渐变背景上，使用 plain 风格 */
 .btn-back-home {
   width: 100%;
-  padding: 8px 0;
-  font-size: 13px;
-  color: #1a3a6e;
-  background: rgba(255, 255, 255, 0.25);
-  border: 1px solid rgba(26, 58, 110, 0.2);
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn-back-home:hover {
-  background: rgba(255, 255, 255, 0.4);
-  color: #1a3a6e;
 }
 
 /* 主内容区 */
@@ -401,45 +398,37 @@ export default {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: #f5f7fa;
+  background: var(--oc-bg, #f5f7fa);
 }
 
 .top-bar {
   height: 60px;
-  background: #fff;
+  background: var(--oc-bg-white, #fff);
   display: flex;
   align-items: center;
   padding: 0 24px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--oc-shadow-sm, 0 1px 4px rgba(0, 0, 0, 0.08));
   flex-shrink: 0;
   gap: 16px;
 }
 
+/* 折叠按钮：圆形 el-button */
 .btn-collapse {
-  background: none;
-  border: 1px solid #d0dff0;
-  border-radius: 6px;
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  color: #1a3a6e;
-  font-size: 18px;
-  transition: all 0.2s;
+  border: 1px solid var(--oc-border, #d0dff0) !important;
+  color: var(--oc-title, #1a3a6e) !important;
 }
 
 .btn-collapse:hover {
-  background: #f0f5ff;
-  border-color: #3584e4;
+  background: var(--oc-primary-bg, #f0f5ff) !important;
+  border-color: var(--oc-primary, #3584e4) !important;
+  color: var(--oc-primary, #3584e4) !important;
 }
 
 .top-title {
   margin: 0;
   font-size: 18px;
   font-weight: 600;
-  color: #1a3a6e;
+  color: var(--oc-title, #1a3a6e);
   flex: 1;
 }
 
@@ -451,23 +440,7 @@ export default {
 
 .top-username {
   font-size: 14px;
-  color: #1a3a6e;
-}
-
-.btn-logout {
-  padding: 6px 16px;
-  font-size: 13px;
-  color: #1a5fb4;
-  background: #fff;
-  border: 1px solid #3584e4;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn-logout:hover {
-  background: #f0f5ff;
-  color: #14478a;
+  color: var(--oc-title, #1a3a6e);
 }
 
 .content-area {

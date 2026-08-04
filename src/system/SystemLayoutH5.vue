@@ -92,13 +92,13 @@ export default {
   flex-direction: column;
   height: 100vh;
   overflow: hidden;
-  background: #f5f7fa;
+  background: var(--oc-bg, #f5f7fa);
 }
 
 /* 顶部栏 */
 .h5-top-bar {
   height: 50px;
-  background: linear-gradient(135deg, #3584e4, #1a5fb4);
+  background: linear-gradient(135deg, var(--oc-primary, #3584e4), var(--oc-primary-dark, #1a5fb4));
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -157,7 +157,7 @@ export default {
   right: 0;
   height: 56px;
   background: #fff;
-  border-top: 1px solid #e8ecf0;
+  border-top: 1px solid var(--oc-border, #e8ecf0);
   display: flex;
   align-items: center;
   justify-content: space-around;
@@ -173,13 +173,13 @@ export default {
   align-items: center;
   justify-content: center;
   gap: 3px;
-  color: #999;
+  color: var(--oc-text-light, #999);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .h5-tab-item.active {
-  color: #1a5fb4;
+  color: var(--oc-primary-dark, #1a5fb4);
 }
 
 .h5-tab-icon {

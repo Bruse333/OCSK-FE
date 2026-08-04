@@ -19,7 +19,7 @@
 | 框架 | Vue 3（Options API） |
 | 构建工具 | Vite 3 |
 | 路由 | Vue Router 4（history 模式） |
-| UI 组件库 | Element Plus |
+| UI 组件库 | Element Plus + @element-plus/icons-vue（全局注册） |
 | 网络请求 | Axios（二次封装在 `src/utils/request.js`） |
 | 图表库 | ECharts（用于数据统计页面） |
 | 流程图 | @vue-flow/core + background + controls（流程构建器画布，需 vue>=3.3） |
@@ -42,7 +42,9 @@ OCSKILL-FE
 │   ├── App.vue                 # 仅 <RouterView/>
 │   ├── router
 │   │   └── index.js            # 路由表 + 全局守卫 + 双端组件选择
-│   ├── assets                  # 静态图片、基础样式
+│   ├── assets
+│   │   ├── theme.css           # 全局主题变量（主色/背景/边框/圆角/阴影 + el-* 组件主题覆盖）
+│   │   └── ...                 # 其他静态图片、基础样式
 │   ├── components              # 默认示例组件（未参与业务）
 │   ├── login
 │   │   ├── login.vue           # PC 登录
@@ -172,18 +174,24 @@ timeout: 15000
 
 ### 8.1 登录页
 - 用户名 + 密码登录。
+- **UI 组件**：`el-input`（带 User/Lock 前缀图标 + 显示密码功能）、`el-button` primary 登录按钮、`el-link` 游客登录。
 - 成功写入 `token/username/privilege`，跳转 `/`。
 
 ### 8.2 首页
 - 展示用户名、退出按钮、宣传图。
 - "进入系统" 跳转 `/system/retrieval`。
 - ~~PC 首页的"新增用户"入口已删除~~，统一迁移至系统管理-用户管理；H5 首页（home_h5.vue）仍保留"新增用户"按钮（`privilege === 3` 可见），直接调用 `POST /users`。
+- **UI 组件**：`el-button` 退出登录（`ElMessageBox.confirm` 二次确认）、`el-button` type="success" 进入系统按钮。
 
 ### 8.3 信息检索（Retrieval）
 - 选择船型、关键词检索。
 - 分页展示结果卡片。
 - 编辑需 `privilege >= 2`，删除需 `privilege >= 3`。
 - 支持详情弹窗、编辑弹窗、图片/文档上传。
+- **UI 组件**：`el-select` 船型选择、`el-button` 检索/编辑/删除、`el-pagination` 分页、`el-dialog` 关键词/详情/编辑弹窗、`el-image` 图片预览、`ElMessage` / `ElMessageBox` 提示与确认。
+- **弹窗固定高度**：详情弹窗和编辑弹窗固定高度 600px，内容区 `overflow-y: auto` 滚动（非 scoped 全局样式覆盖，因 `append-to-body` 导致 scoped 无法穿透）。
+- **步骤序号样式**：编辑弹窗中排查步骤序号采用浅蓝底 + 蓝色描边圆环（`--oc-primary-bg` 背景 + `--oc-primary` 边框），非蓝色渐变实心圆。
+- **文档附件命名**：详情页文档附件统一显示"文件 1、文件 2"序号，不显示原始文件名。
 - **流程模式（P2）**：详情弹窗中，若该记录 `flowUrl` 非空，顶部显示「图文模式 | 流程模式」Tab；切到流程模式时懒加载 `flowUrl` → `parseFlow` 解析 → 用 `FlowRunner` 播放（状态机引导式排查，支持上一步/重新开始）。PC 与 H5 双端均支持，逻辑一致。
 - **删除记录清理**：删除排查记录时，连同其 `photo`、`doc`、`flowUrl` 指向的 OSS 源文件一并调用 `deleteFiles` 清理，避免孤儿文件。
 
@@ -191,10 +199,12 @@ timeout: 15000
 - 选择船型、填写故障现象、排查步骤。
 - 上传图片（最多 9 张，单张 < 2M）和文档（单个 < 2M）。
 - `privilege < 2` 时提交禁用。
+- **UI 组件**：`el-select` 船型选择、`el-input` type="textarea" 故障现象、`el-dialog` 添加船型弹窗、`el-button` 提交/取消。
 
 ### 8.5 个人中心（Mine）
 - 展示用户名、权限等级、权限说明。
 - 退出登录。
+- **UI 组件**：`el-button` 退出登录（`ElMessageBox.confirm` 二次确认）、`ElMessage` 提示。
 
 ### 8.6 数据统计（DataStatistics）
 - **仅 PC 页面**，仅 `privilege === 3` 可见。
@@ -215,7 +225,7 @@ timeout: 15000
   ```
 - 图表左上角显示"故障记录总数：{value 之和}"。
 - 加载时显示 ECharts loading 动画，渲染后使用弹性缩放动画。
-- 所有提示使用 `ElMessage`。
+- **UI 组件**：CSS 全部引用 `theme.css` 主题变量（`--oc-title`、`--oc-text-light`、`--oc-bg-white`、`--oc-radius`、`--oc-shadow`）。
 
 ### 8.7 用户管理（UserManagement）
 - **仅 PC 页面**，仅 `privilege === 3` 可见。
@@ -252,6 +262,7 @@ timeout: 15000
 - **仅 PC 页面**，`privilege >= 2` 可见（路由守卫 + 侧边栏菜单 requiredPrivilege: 2）。
 - 路径：`/system/flow-builder`。
 - 用途：拖拽搭建"故障排查流程"（开始/步骤/判断/结束 4 种节点 + 连线），导出/导入 JSON 流程文件；构建器内可校验、预览（FlowRunner 播放器）。
+- **UI 组件**：`el-button` 工具栏按钮（全屏/校验/预览/导出/导入/提交/新建）、`el-input` 流程名/描述、`el-radio-group` 已解决/未解决、`el-dialog` 各类弹窗、Element Plus 图标（FullScreen、Check、Upload、Download、Plus、Delete 等）。
 - **顶部驱动（重构后）**：工具栏含「关联船型」+「排查记录」两个必选下拉；右侧面板仅保留流程名/描述/统计。未选船型+记录时画布被蒙层遮罩不可交互。
   - 选船型 → 拉取 `/trbsts?shipId=&pageSize=100` 候选记录（每条含 `flowUrl/photo/doc`）。
   - 选排查记录：有 `flowUrl` → `fetch` 下载 → `parseFlow` → 加载到画布（失败降级新建）；无 `flowUrl` → 新建空流程绑定该记录。
@@ -277,16 +288,85 @@ timeout: 15000
 
 ---
 
-- 主色调：
-  - 主蓝：`#3584e4`
-  - 深蓝：`#1a5fb4`
-  - 浅蓝：`#5FB0E6`、`#87CEEB`
-  - 成功绿：`#19be6b`
-  - 警告橙：`#ff9900`
-  - 错误红：`#ed4014`
-- 背景色：页面 `#f5f7fa`，卡片 `#fff`。
-- 标题文字：`#1a3a6e`。
-- 提示：统一使用 `ElMessage` / `ElNotification` / `ElMessageBox`。
-- 弹窗：新页面统一使用 Element Plus 的 `el-dialog`；旧 PC 页面仍保留自定义 `.modal-overlay` + `.modal-dialog` 结构。
+## 9. UI 设计规范
+
+### 9.1 主题变量系统（`src/assets/theme.css`）
+
+所有页面统一通过 CSS 变量引用主题色，禁止硬编码颜色值。
+
+```css
+:root {
+  --oc-primary: #3584e4;          /* 主蓝 */
+  --oc-primary-dark: #1a5fb4;     /* 深蓝 */
+  --oc-primary-light: #5FB0E6;    /* 浅蓝 */
+  --oc-primary-lighter: #87CEEB;  /* 更浅蓝 */
+  --oc-primary-bg: #f0f5ff;       /* 主色浅背景 */
+  --oc-success: #19be6b;          /* 成功绿 */
+  --oc-warning: #ff9900;          /* 警告橙 */
+  --oc-danger: #ed4014;           /* 错误红 */
+  --oc-title: #1a3a6e;            /* 标题文字 */
+  --oc-text: #46587a;             /* 正文文字 */
+  --oc-text-light: #8a94a6;       /* 辅助文字 */
+  --oc-bg: #f5f7fa;               /* 页面背景 */
+  --oc-bg-white: #fff;            /* 卡片/弹窗背景 */
+  --oc-bg-soft: #fafbfc;          /* 输入框背景 */
+  --oc-border: #eef1f6;           /* 边框色 */
+  --oc-radius: 10px;              /* 标准圆角 */
+  --oc-radius-lg: 12px;           /* 大圆角 */
+  --oc-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  --oc-shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.08);
+  --oc-shadow-lg: 0 8px 32px rgba(26, 58, 110, 0.25);
+}
+```
+
+theme.css 同时覆盖 Element Plus 组件默认主题（el-button / el-input / el-pagination 等），确保与项目配色一致。
+
+### 9.2 组件统一规范
+
+| 场景 | PC 端 | H5 端 |
+|---|---|---|
+| 按钮 | `el-button`（统一样式，禁止自定义 button） | 渐变蓝自定义按钮（`--oc-primary` → `--oc-primary-dark`） |
+| 输入框 | `el-input` / `el-input type="textarea"` | 自定义 input（引用 `--oc-border` / `--oc-bg-soft`） |
+| 下拉选择 | `el-select` | 自定义底部弹出选择器 |
+| 弹窗 | `el-dialog`（`append-to-body`） | 自定义卡片式弹窗（白色头部 + 底部细线） |
+| 分页 | `el-pagination` | 自定义分页 |
+| 提示 | `ElMessage` / `ElMessageBox` | `ElMessage` / `ElMessageBox`（两端统一） |
+| 图标 | `@element-plus/icons-vue`（全局注册） | 不使用图标组件 |
+| 图片预览 | `el-image`（`preview-src-list`） | `el-image`（`preview-src-list`） |
+| 退出确认 | `ElMessageBox.confirm` | `ElMessageBox.confirm` |
+
+### 9.3 弹窗规范
+
+- **固定高度**：详情弹窗和编辑弹窗固定高度 `600px`，内容区 `overflow-y: auto` 滚动。
+- **实现方式**：因 `el-dialog` 使用 `append-to-body`，scoped 样式无法穿透，需在文件末尾添加非 scoped `<style>` 块，通过 `.detail-dialog` / `.edit-dialog` 类名直接覆盖。
+- **关闭按钮**：统一使用 `el-dialog` 原生右上角 × 按钮，不使用自定义关闭按钮。
+- **卡片式详情**：PC 和 H5 详情弹窗均采用白色头部 + 卡片区块 + 圆环步骤序号风格。
+
+### 9.4 文档附件命名
+
+- 详情页文档附件统一显示"文件 1、文件 2"序号，不显示原始文件名。
+
+### 9.5 步骤序号样式
+
+- 编辑弹窗中排查步骤序号采用**浅蓝底 + 蓝色描边圆环**（`--oc-primary-bg` 背景 + `--oc-primary` 边框 + `--oc-primary-dark` 文字），不使用蓝色渐变实心圆。
+
+### 9.6 图标使用
+
+- 所有图标使用 `@element-plus/icons-vue`，通过 `markRaw()` 注册到组件 data 中避免 Vue 将其变为响应式对象。
+- 全局注册方式：在 `main.js` 中遍历 `ElementPlusIconsVue` 并 `app.component(key, component)`。
+
+---
+
+## 10. 系统布局（SystemLayout）
+
+### 10.1 PC 端（SystemLayout.vue）
+- 左侧渐变蓝侧边栏（`--oc-primary-lighter` → `--oc-primary-light`）+ 右侧主内容区。
+- 侧边栏菜单项：`el-button` 返回首页（plain 风格）、`el-button` 圆形折叠按钮（Menu 图标）。
+- 顶部栏：`el-button` 退出登录（`ElMessageBox.confirm` 二次确认）。
+- 侧边栏配色、标题色、边框色均引用 `theme.css` 主题变量。
+
+### 10.2 H5 端（SystemLayoutH5.vue）
+- 顶部栏渐变蓝（`--oc-primary` → `--oc-primary-dark`）+ 底部 TabBar。
+- 顶部栏配色引用主题变量。
 
 ---

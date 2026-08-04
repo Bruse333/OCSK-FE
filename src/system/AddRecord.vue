@@ -9,62 +9,78 @@
     <!-- 船型选择 -->
     <div class="form-card">
       <div class="form-section-header">
-        <span class="section-icon icon-ship">🚢</span>
+        <span class="section-icon"><el-icon><Ship /></el-icon></span>
         <span class="form-section-title">船型选择</span>
         <span class="required-mark">*</span>
       </div>
-      <div class="ship-select-wrapper">
-        <div class="ship-select" @click="toggleShipDropdown">
-          <span class="ship-select-text" :class="{ selected: selectedShipName }">
-            {{ selectedShipName || '请选择船型' }}
-          </span>
-          <span class="selector-arrow" :class="{ up: showShipDropdown }">&#9662;</span>
-        </div>
-        <div class="ship-dropdown-list" v-if="showShipDropdown">
-          <div v-for="item in shipList" :key="item.id" class="ship-dropdown-item"
-            :class="{ active: selectedShipId === item.id }" @click.stop="selectShip(item.id, item.name)">
-            <span>{{ item.name }}</span>
-            <span v-if="selectedShipId === item.id" class="check-icon">&#10003;</span>
-          </div>
-          <div class="ship-add-btn" @click.stop="showAddShipModal = true">
-            <span>+</span>
-            <span>添加新船型</span>
-          </div>
-        </div>
+      <div class="ship-select-row">
+        <el-select
+          v-model="selectedShipId"
+          placeholder="请选择船型"
+          filterable
+          clearable
+          class="ship-select"
+          @change="onShipChange"
+        >
+          <el-option
+            v-for="item in shipList"
+            :key="item.id"
+            :label="item.name"
+            :value="item.id"
+          />
+        </el-select>
+        <el-button :icon="Plus" @click="showAddShipModal = true">添加新船型</el-button>
       </div>
     </div>
 
     <!-- 故障现象 -->
     <div class="form-card">
       <div class="form-section-header">
-        <span class="section-icon icon-step">📝</span>
+        <span class="section-icon"><el-icon><EditPen /></el-icon></span>
         <span class="form-section-title">故障现象</span>
         <span class="required-mark">*</span>
       </div>
-      <textarea v-model="phenomenon" class="phenomenon-input" placeholder="请描述故障现象" maxlength="500"></textarea>
+      <el-input
+        v-model="phenomenon"
+        type="textarea"
+        :rows="3"
+        placeholder="请描述故障现象"
+        maxlength="500"
+        show-word-limit
+      />
     </div>
 
     <!-- 排查步骤 -->
     <div class="form-card">
       <div class="form-section-header">
-        <span class="section-icon icon-step">📋</span>
+        <span class="section-icon"><el-icon><List /></el-icon></span>
         <span class="form-section-title">排查步骤</span>
         <span class="required-mark">*</span>
       </div>
       <div class="steps-container">
         <div v-for="(step, i) in steps" :key="i" class="step-row">
           <span class="step-index-badge">{{ i + 1 }}</span>
-          <input v-model="steps[i]" class="step-input" :placeholder="`请输入第 ${i + 1} 步排查内容`" />
-          <button v-if="steps.length > 1" class="step-delete-btn" @click="removeStep(i)">×</button>
+          <el-input
+            v-model="steps[i]"
+            :placeholder="`请输入第 ${i + 1} 步排查内容`"
+            class="step-input"
+          />
+          <el-button
+            v-if="steps.length > 1"
+            :icon="Close"
+            circle
+            text
+            @click="removeStep(i)"
+          />
         </div>
-        <button class="add-step-btn" @click="addStep">+ 添加一步</button>
+        <el-button class="add-step-btn" text :icon="Plus" @click="addStep">添加一步</el-button>
       </div>
     </div>
 
     <!-- 照片上传 -->
     <div class="form-card">
       <div class="form-section-header">
-        <span class="section-icon icon-photo">📷</span>
+        <span class="section-icon"><el-icon><Camera /></el-icon></span>
         <span class="form-section-title">照片上传</span>
         <span class="upload-hint">单文件 &lt; 2M（可多选）</span>
       </div>
@@ -73,10 +89,16 @@
           <div v-for="(photo, i) in photoList" :key="i" class="preview-item">
             <img :src="photo.preview" alt="照片" class="preview-img" />
             <div class="uploading-mask" v-if="photo.uploading">上传中...</div>
-            <button class="preview-delete" @click="removeFile(i, 'photo')">×</button>
+            <el-button
+              class="preview-delete"
+              :icon="Close"
+              circle
+              size="small"
+              @click="removeFile(i, 'photo')"
+            />
           </div>
           <label class="upload-trigger" :class="{ 'upload-disabled': privilege < 2 }" v-if="photoList.length < 9">
-            <span>📷</span>
+            <el-icon class="upload-trigger-icon"><Camera /></el-icon>
             <span class="upload-trigger-text">选择照片</span>
             <input type="file" accept="image/*" multiple @change="choosePhoto($event)" :disabled="privilege < 2"
               hidden />
@@ -88,23 +110,24 @@
     <!-- 文件上传 -->
     <div class="form-card">
       <div class="form-section-header">
-        <span class="section-icon icon-file">📎</span>
+        <span class="section-icon"><el-icon><Paperclip /></el-icon></span>
         <span class="form-section-title">文件上传</span>
         <span class="upload-hint">单文件 &lt; 2M（可多选）</span>
       </div>
       <div class="upload-area">
         <div class="file-list" v-if="fileList.length > 0">
           <div v-for="(file, i) in fileList" :key="i" class="file-item">
-            <span class="file-icon-wrap">{{ file.uploading ? '⏳' : '📄' }}</span>
+            <el-icon class="file-icon-wrap" v-if="file.uploading"><Loading /></el-icon>
+            <el-icon class="file-icon-wrap" v-else><Document /></el-icon>
             <div class="file-info">
               <span class="file-name">{{ file.name }}</span>
               <span class="file-size">{{ file.uploading ? '上传中...' : file.sizeText }}</span>
             </div>
-            <button class="file-delete" @click="removeFile(i, 'file')">×</button>
+            <el-button :icon="Delete" text @click="removeFile(i, 'file')" />
           </div>
         </div>
         <label class="upload-trigger upload-trigger-file" :class="{ 'upload-disabled': privilege < 2 }">
-          <span>📎</span>
+          <el-icon class="upload-trigger-icon"><Paperclip /></el-icon>
           <span class="upload-trigger-text">选择文件</span>
           <input type="file" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" multiple @change="chooseFile($event)" :disabled="privilege < 2" hidden />
         </label>
@@ -113,41 +136,41 @@
 
     <!-- 提交按钮 -->
     <div class="submit-section">
-      <button class="btn-submit-large" :disabled="privilege < 2" @click="handleSubmit">确认提交</button>
+      <el-button
+        type="primary"
+        size="large"
+        class="btn-submit-large"
+        :disabled="privilege < 2"
+        @click="handleSubmit"
+      >确认提交</el-button>
     </div>
 
     <!-- 添加船型弹窗 -->
-    <div class="modal-overlay" v-if="showAddShipModal" @click.self="cancelAddShip">
-      <div class="modal-dialog add-ship-modal">
-        <div class="modal-header">
-          <h2>添加新船型</h2>
-          <button class="modal-close" @click="cancelAddShip">×</button>
-        </div>
-        <div class="modal-body">
-          <div class="modal-error" v-if="addShipError">{{ addShipError }}</div>
-          <input v-model="newShipName" class="modal-input" placeholder="请输入船型名称" maxlength="20" />
-        </div>
-        <div class="modal-footer">
-          <button class="btn-cancel" @click="cancelAddShip">取消</button>
-          <button class="btn-submit" @click="confirmAddShip">确定</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- 提示弹框 
-    <transition name="fade">
-      <div v-if="alertBox.show" class="alert-overlay" @click.self="closeAlert">
-        <div class="alert-dialog">
-          <p class="alert-msg">{{ alertBox.msg }}</p>
-          <button class="alert-btn" @click="closeAlert">确定</button>
-        </div>
-      </div>
-    </transition> -->
+    <el-dialog
+      v-model="showAddShipModal"
+      title="添加新船型"
+      width="400px"
+      :close-on-click-modal="false"
+      append-to-body
+    >
+      <el-input
+        v-model="newShipName"
+        placeholder="请输入船型名称"
+        maxlength="20"
+        clearable
+      />
+      <template #footer>
+        <el-button @click="cancelAddShip">取消</el-button>
+        <el-button type="primary" @click="confirmAddShip">确定</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script>
+import { markRaw } from 'vue'
 import { ElMessage } from 'element-plus'
+import { Plus, Close, Delete, Ship, EditPen, List, Camera, Paperclip, Document, Loading } from '@element-plus/icons-vue'
 import request from '@/utils/request'
 import { getPrivilege } from '@/utils/token'
 import { deleteFiles } from '@/utils/file'
@@ -160,16 +183,15 @@ export default {
       shipList: [],
       selectedShipId: '',
       selectedShipName: '',
-      showShipDropdown: false,
       phenomenon: '',
       steps: [''],
       photoList: [],
       fileList: [],
       showAddShipModal: false,
       newShipName: '',
-      addShipError: '',
       privilege: 1,
-      alertBox: { show: false, msg: '' }
+      // 图标（markRaw 避免组件被响应式化）
+      Plus: markRaw(Plus), Close: markRaw(Close), Delete: markRaw(Delete)
     }
   },
   created() {
@@ -177,14 +199,6 @@ export default {
     this.fetchShips()
   },
   methods: {
-    showAlert(msg) {
-      this.alertBox.msg = msg
-      this.alertBox.show = true
-    },
-    closeAlert() {
-      this.alertBox.show = false
-    },
-
     // ====== 船型 ======
     fetchShips() {
       request.get('/ships').then(res => {
@@ -192,56 +206,34 @@ export default {
           this.shipList = res.data.data.map(item => ({ id: item.id, name: item.name }))
         }
       }).catch(() => {
-        ElMessage({
-          message: '获取船型列表失败！',
-          type: 'error',
-        })
+        ElMessage({ message: '获取船型列表失败！', type: 'error' })
       })
     },
-    toggleShipDropdown() {
-      this.showShipDropdown = !this.showShipDropdown
-    },
-    selectShip(id, name) {
-      this.selectedShipId = id
-      this.selectedShipName = name
-      this.showShipDropdown = false
+    onShipChange(val) {
+      const ship = this.shipList.find(s => s.id === val)
+      this.selectedShipName = ship ? ship.name : ''
     },
     cancelAddShip() {
       this.showAddShipModal = false
       this.newShipName = ''
-      this.addShipError = ''
     },
     confirmAddShip() {
       const name = this.newShipName.trim()
       if (!name) {
-        ElMessage({
-          message: '请输入船型名称',
-          type: 'primary',
-        })
+        ElMessage({ message: '请输入船型名称', type: 'warning' })
         return
       }
-      this.addShipError = ''
       request.put('/ships', { name }).then(res => {
         if (res.data.code === 1) {
-          ElMessage({
-          message: '添加成功！',
-          type: 'success',
-        })
+          ElMessage({ message: '添加成功！', type: 'success' })
           this.showAddShipModal = false
           this.newShipName = ''
-          this.addShipError = ''
           this.fetchShips()
         } else {
-          ElMessage({
-          message: res.data.msg || '添加船型失败',
-          type: 'error',
-        })
+          ElMessage({ message: res.data.msg || '添加船型失败', type: 'error' })
         }
       }).catch(() => {
-        ElMessage({
-          message: '添加船型失败，请重试',
-          type: 'error',
-        })
+        ElMessage({ message: '添加船型失败，请重试', type: 'error' })
       })
     },
 
@@ -267,26 +259,17 @@ export default {
       const files = Array.from(e.target.files)
       e.target.value = ''
       if (this.privilege < 2) {
-        ElMessage({
-          message: '权限不足，无法上传照片！',
-          type: 'error',
-        })
+        ElMessage({ message: '权限不足，无法上传照片！', type: 'error' })
         return
       }
       if (this.photoList.length + files.length > 9) {
-        ElMessage({
-          message: '最多照片数量不能超过9张！',
-          type: 'warning',
-        })
+        ElMessage({ message: '最多照片数量不能超过9张！', type: 'warning' })
         return
       }
       const maxSize = 2 * 1024 * 1024
       for (const f of files) {
         if (f.size > maxSize) {
-          ElMessage({
-          message: '单个文件大小不能超过2MB！',
-          type: 'warning',
-        })
+          ElMessage({ message: '单个文件大小不能超过2MB！', type: 'warning' })
           return
         }
       }
@@ -298,10 +281,7 @@ export default {
           this.photoList[baseLen].url = ossUrl
           this.photoList[baseLen].uploading = false
         }).catch(() => {
-          ElMessage({
-          message: '照片上传失败！',
-          type: 'error',
-        })
+          ElMessage({ message: '照片上传失败！', type: 'error' })
           this.photoList.splice(baseLen, 1)
         })
       })
@@ -310,19 +290,13 @@ export default {
       const files = Array.from(e.target.files)
       e.target.value = ''
       if (this.privilege < 2) {
-        ElMessage({
-          message: '权限不足，无法上传文件！',
-          type: 'error',
-        })
+        ElMessage({ message: '权限不足，无法上传文件！', type: 'error' })
         return
       }
       const maxSize = 2 * 1024 * 1024
       for (const f of files) {
         if (f.size > maxSize) {
-          ElMessage({
-          message: '单个文件大小不能超过2MB！',
-          type: 'warning',
-        })
+          ElMessage({ message: '单个文件大小不能超过2MB！', type: 'warning' })
           return
         }
       }
@@ -338,10 +312,7 @@ export default {
           this.fileList[baseLen].url = ossUrl
           this.fileList[baseLen].uploading = false
         }).catch(() => {
-          ElMessage({
-          message: '文件上传失败！',
-          type: 'error',
-        })
+          ElMessage({ message: '文件上传失败！', type: 'error' })
           this.fileList.splice(baseLen, 1)
         })
       })
@@ -361,45 +332,27 @@ export default {
     // ====== 提交 ======
     handleSubmit() {
       if (this.privilege < 2) {
-        ElMessage({
-          message: '权限不足，无法提交！',
-          type: 'warning',
-        })
+        ElMessage({ message: '权限不足，无法提交！', type: 'warning' })
         return
       }
       if (!this.selectedShipId) {
-        ElMessage({
-          message: '请选择船型！',
-          type: 'warning',
-        })
+        ElMessage({ message: '请选择船型！', type: 'warning' })
         return
       }
       if (!this.phenomenon.trim()) {
-        ElMessage({
-          message: '请输入故障现象！',
-          type: 'warning',
-        })
+        ElMessage({ message: '请输入故障现象！', type: 'warning' })
         return
       }
       const shootingStr = this.joinSteps()
       if (!shootingStr) {
-        ElMessage({
-          message: '请至少输入一条排查步骤！',
-          type: 'warning',
-        })
+        ElMessage({ message: '请至少输入一条排查步骤！', type: 'warning' })
         return
       }
       for (const p of this.photoList) {
-        if (p.uploading) { ElMessage({
-          message: '图片正在上传中，请稍候！',
-          type: 'warning',
-        }); return }
+        if (p.uploading) { ElMessage({ message: '图片正在上传中，请稍候！', type: 'warning' }); return }
       }
       for (const f of this.fileList) {
-        if (f.uploading) { ElMessage({
-          message: '文件正在上传中，请稍候！',
-          type: 'warning',
-        }); return }
+        if (f.uploading) { ElMessage({ message: '文件正在上传中，请稍候！', type: 'warning' }); return }
       }
       const photoUrls = this.photoList.filter(p => p.url).map(p => p.url)
       const fileUrls = this.fileList.filter(f => f.url).map(f => f.url)
@@ -412,10 +365,7 @@ export default {
       }
       request.put('/trbsts', submitData).then(res => {
         if (res.data.code === 1) {
-          ElMessage({
-          message: '上传成功！',
-          type: 'success',
-        })
+          ElMessage({ message: '上传成功！', type: 'success' })
           this.selectedShipId = ''
           this.selectedShipName = ''
           this.phenomenon = ''
@@ -423,16 +373,10 @@ export default {
           this.photoList = []
           this.fileList = []
         } else {
-          ElMessage({
-          message: res.data.msg || '提交失败！',
-          type: 'error',
-        })
+          ElMessage({ message: res.data.msg || '提交失败！', type: 'error' })
         }
       }).catch(() => {
-        ElMessage({
-          message: '提交失败！',
-          type: 'error',
-        })
+        ElMessage({ message: '提交失败！', type: 'error' })
       })
     }
   }
@@ -453,19 +397,19 @@ export default {
   margin: 0;
   font-size: 20px;
   font-weight: 600;
-  color: #1a3a6e;
+  color: var(--oc-title, #1a3a6e);
 }
 
 .page-subtitle {
   margin: 6px 0 0;
   font-size: 13px;
-  color: #999;
+  color: var(--oc-text-light, #8a94a6);
 }
 
 /* 表单卡片 */
 .form-card {
   background: #fff;
-  border-radius: 10px;
+  border-radius: var(--oc-radius, 10px);
   padding: 20px 24px;
   margin-bottom: 16px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
@@ -486,7 +430,8 @@ export default {
   align-items: center;
   justify-content: center;
   font-size: 16px;
-  background: linear-gradient(135deg, #3584e4, #1a5fb4);
+  color: #fff;
+  background: linear-gradient(135deg, var(--oc-primary, #3584e4), var(--oc-primary-dark, #1a5fb4));
 }
 
 .form-section-title {
@@ -496,7 +441,7 @@ export default {
 }
 
 .required-mark {
-  color: #ed4014;
+  color: var(--oc-danger, #ed4014);
   font-size: 15px;
   font-weight: bold;
 }
@@ -504,124 +449,18 @@ export default {
 .upload-hint {
   margin-left: auto;
   font-size: 12px;
-  color: #999;
+  color: var(--oc-text-light, #8a94a6);
 }
 
 /* 船型选择 */
-.ship-select-wrapper {
-  position: relative;
+.ship-select-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
 }
 
 .ship-select {
-  height: 38px;
-  border: 1px solid #d0d5dd;
-  border-radius: 8px;
-  background: #fafbfc;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  padding: 0 14px;
-  gap: 8px;
-}
-
-.ship-select-text {
   flex: 1;
-  font-size: 14px;
-  color: #999;
-}
-
-.ship-select-text.selected {
-  color: #333;
-}
-
-.selector-arrow {
-  font-size: 12px;
-  color: #999;
-  transition: transform 0.2s;
-}
-
-.selector-arrow.up {
-  transform: rotate(180deg);
-}
-
-.ship-dropdown-list {
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
-  right: 0;
-  background: #fff;
-  border: 1px solid #d0d5dd;
-  border-radius: 8px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-  z-index: 100;
-  max-height: 280px;
-  overflow-y: auto;
-}
-
-.ship-dropdown-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 14px;
-  font-size: 14px;
-  color: #333;
-  cursor: pointer;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.ship-dropdown-item:last-child {
-  border-bottom: none;
-}
-
-.ship-dropdown-item:hover {
-  background: #f0f7ff;
-}
-
-.ship-dropdown-item.active {
-  color: #1E90FF;
-  background: #e8f4ff;
-  font-weight: 500;
-}
-
-.check-icon {
-  color: #1E90FF;
-  font-size: 14px;
-}
-
-.ship-add-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 10px;
-  color: #1E90FF;
-  font-size: 13px;
-  cursor: pointer;
-  border-top: 1px solid #f0f0f0;
-}
-
-.ship-add-btn:hover {
-  background: #f0f7ff;
-}
-
-/* 故障现象 */
-.phenomenon-input {
-  width: 100%;
-  min-height: 80px;
-  padding: 12px;
-  border: 1px solid #d0d5dd;
-  border-radius: 8px;
-  font-size: 14px;
-  background: #fafbfc;
-  box-sizing: border-box;
-  line-height: 1.5;
-  resize: vertical;
-  outline: none;
-  font-family: inherit;
-}
-
-.phenomenon-input:focus {
-  border-color: #3584e4;
 }
 
 /* 排查步骤 */
@@ -640,7 +479,7 @@ export default {
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #1E90FF, #1565c0);
+  background: linear-gradient(135deg, var(--oc-primary, #3584e4), var(--oc-primary-dark, #1a5fb4));
   color: #fff;
   font-size: 13px;
   font-weight: 600;
@@ -652,42 +491,13 @@ export default {
 
 .step-input {
   flex: 1;
-  height: 38px;
-  border: 1px solid #d0d5dd;
-  border-radius: 8px;
-  padding: 0 12px;
-  font-size: 14px;
-  background: #fafbfc;
-  outline: none;
-  box-sizing: border-box;
-}
-
-.step-input:focus {
-  border-color: #3584e4;
-}
-
-.step-delete-btn {
-  background: none;
-  border: none;
-  font-size: 20px;
-  color: #ed4014;
-  cursor: pointer;
-  padding: 0 8px;
 }
 
 .add-step-btn {
   width: 100%;
-  padding: 8px 0;
-  font-size: 13px;
-  color: #1E90FF;
-  background: none;
-  border: 1px dashed #1E90FF;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.add-step-btn:hover {
-  background: #f0f7ff;
+  border-style: dashed !important;
+  border-color: var(--oc-primary, #3584e4) !important;
+  color: var(--oc-primary, #3584e4) !important;
 }
 
 /* 上传区域 */
@@ -733,17 +543,7 @@ export default {
   position: absolute;
   top: 2px;
   right: 2px;
-  width: 20px;
-  height: 20px;
-  background: rgba(0, 0, 0, 0.5);
-  border: none;
-  border-radius: 50%;
-  color: #fff;
-  font-size: 12px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  z-index: 1;
 }
 
 .upload-trigger {
@@ -758,11 +558,12 @@ export default {
   background: #fafbfc;
   cursor: pointer;
   gap: 4px;
-  font-size: 20px;
+  transition: all 0.2s;
 }
 
 .upload-trigger:hover {
-  background: #f0f0f0;
+  background: #f0f7ff;
+  border-color: var(--oc-primary, #3584e4);
 }
 
 .upload-disabled {
@@ -772,11 +573,17 @@ export default {
 
 .upload-disabled:hover {
   background: #fafbfc;
+  border-color: #d0d5dd;
+}
+
+.upload-trigger-icon {
+  font-size: 24px;
+  color: var(--oc-text-light, #8a94a6);
 }
 
 .upload-trigger-text {
   font-size: 12px;
-  color: #999;
+  color: var(--oc-text-light, #8a94a6);
 }
 
 .upload-trigger-file {
@@ -810,6 +617,7 @@ export default {
 .file-icon-wrap {
   font-size: 18px;
   flex-shrink: 0;
+  color: var(--oc-primary, #3584e4);
 }
 
 .file-info {
@@ -829,21 +637,8 @@ export default {
 
 .file-size {
   font-size: 11px;
-  color: #999;
+  color: var(--oc-text-light, #8a94a6);
   margin-top: 2px;
-}
-
-.file-delete {
-  background: none;
-  border: none;
-  font-size: 16px;
-  color: #c0c4cc;
-  cursor: pointer;
-  padding: 0 8px;
-}
-
-.file-delete:hover {
-  color: #ed4014;
 }
 
 /* 提交按钮 */
@@ -854,192 +649,6 @@ export default {
 
 .btn-submit-large {
   width: 100%;
-  padding: 12px 0;
-  font-size: 15px;
-  font-weight: 500;
-  color: #fff;
-  background: linear-gradient(135deg, #3584e4, #1a5fb4);
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
   letter-spacing: 2px;
-  transition: all 0.2s;
-}
-
-.btn-submit-large:hover {
-  background: linear-gradient(135deg, #1a5fb4, #14478a);
-}
-
-.btn-submit-large:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* 弹窗 */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(10, 30, 60, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
-.modal-dialog {
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-  overflow: hidden;
-}
-
-.add-ship-modal {
-  width: 400px;
-  max-width: 90vw;
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 24px;
-  background: linear-gradient(135deg, #3584e4, #1a5fb4);
-  color: #fff;
-}
-
-.modal-header h2 {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-}
-
-.modal-close {
-  background: none;
-  border: none;
-  color: #fff;
-  font-size: 22px;
-  cursor: pointer;
-  line-height: 1;
-}
-
-.modal-body {
-  padding: 20px 24px;
-}
-
-.modal-error {
-  color: #ed4014;
-  font-size: 13px;
-  margin-bottom: 12px;
-}
-
-.modal-input {
-  width: 100%;
-  height: 38px;
-  border: 1px solid #d0d5dd;
-  border-radius: 8px;
-  padding: 0 12px;
-  font-size: 14px;
-  background: #fafbfc;
-  outline: none;
-  box-sizing: border-box;
-}
-
-.modal-input:focus {
-  border-color: #3584e4;
-}
-
-.modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  padding: 16px 24px;
-  border-top: 1px solid #eee;
-}
-
-.btn-cancel {
-  padding: 8px 20px;
-  font-size: 14px;
-  color: #1a5fb4;
-  background: #fff;
-  border: 1px solid #3584e4;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.btn-cancel:hover {
-  background: #f0f5ff;
-}
-
-.btn-submit {
-  padding: 8px 20px;
-  font-size: 14px;
-  color: #fff;
-  background: linear-gradient(135deg, #3584e4, #1a5fb4);
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.btn-submit:hover {
-  background: linear-gradient(135deg, #1a5fb4, #14478a);
-}
-
-/* 提示弹框 */
-.alert-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(10, 30, 60, 0.45);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 2000;
-}
-
-.alert-dialog {
-  background: #fff;
-  border-radius: 10px;
-  width: 320px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
-  overflow: hidden;
-}
-
-.alert-msg {
-  margin: 0;
-  padding: 28px 24px;
-  font-size: 15px;
-  color: #1a3a6e;
-  text-align: center;
-  line-height: 1.6;
-}
-
-.alert-btn {
-  display: block;
-  width: 100%;
-  padding: 12px 0;
-  font-size: 15px;
-  color: #fff;
-  background: linear-gradient(135deg, #3584e4, #1a5fb4);
-  border: none;
-  cursor: pointer;
-}
-
-.alert-btn:hover {
-  background: linear-gradient(135deg, #1a5fb4, #14478a);
-}
-
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.25s;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
 }
 </style>

@@ -4,19 +4,19 @@
       <h1 class="site-name">技术知识查询</h1>
       <div class="header-right">
         <span class="header-username">用户: [{{ username }}]</span>
-        <button class="btn-logout" @click="handleLogout">退出登录</button>
+        <el-button @click="handleLogout">退出登录</el-button>
       </div>
     </header>
     <div class="image-container">
       <img src="../assets/ocskill_web.png" alt="Display Image" />
       <div class="action-bar">
-        <button class="btn-primary btn-enter-system" @click="enterSystem">进入系统</button>
+        <el-button type="success" size="large" class="btn-enter-system" @click="enterSystem">进入系统</el-button>
       </div>
     </div>
     <footer class="footer-record">
       <p>Copyright © 2026 OCSKILL技术知识查询. All Rights Reserved.</p>
       <p>
-        <a class="record-gongan" href="http://www.beian.gov.cn/portal/registerSystemInfo?recordcode=44195402000128" target="_blank" rel="noopener noreferrer">
+        <a class="record-gongan" href="http://www.beian.gov.cn/portal/registerSystemInfo?recordCode=44195402000128" target="_blank" rel="noopener noreferrer">
           <img src="../assets/gongan.png" alt="公安备案图标" />
           粤公网安备44195402000128号
         </a>
@@ -29,6 +29,7 @@
 </template>
 
 <script>
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { getUsername, removeToken, removeUsername, removePrivilege, getPrivilege } from '@/utils/token'
 
 export default {
@@ -45,10 +46,19 @@ export default {
   },
   methods: {
     handleLogout() {
-      removeToken()
-      removeUsername()
-      removePrivilege()
-      this.$router.push('/login')
+      ElMessageBox.confirm('确定要退出登录吗？', '退出登录', {
+        confirmButtonText: '确认',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => {
+        removeToken()
+        removeUsername()
+        removePrivilege()
+        ElMessage({ message: '已退出登录！', type: 'success' })
+        this.$router.push('/login')
+      }).catch(() => {
+        // 用户取消
+      })
     },
     enterSystem() {
       this.$router.push('/system/retrieval')
@@ -65,10 +75,10 @@ export default {
 }
 
 .site-header {
-  background: #f0f5ff;
+  background: var(--oc-primary-bg, #f0f5ff);
   padding: 14px 24px;
   text-align: center;
-  border-bottom: 1px solid #d0dff0;
+  border-bottom: 1px solid var(--oc-border, #d0dff0);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -77,7 +87,7 @@ export default {
 
 .site-name {
   margin: 0;
-  color: #1a3a6e;
+  color: var(--oc-title, #1a3a6e);
   font-size: 22px;
   font-weight: 600;
   letter-spacing: 3px;
@@ -92,25 +102,9 @@ export default {
 }
 
 .header-username {
-  color: #1a3a6e;
+  color: var(--oc-title, #1a3a6e);
   font-size: 14px;
   font-weight: 500;
-}
-
-.btn-logout {
-  padding: 6px 14px;
-  font-size: 13px;
-  color: #1a5fb4;
-  background: #fff;
-  border: 1px solid #3584e4;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background 0.2s, color 0.2s;
-}
-
-.btn-logout:hover {
-  background: #f0f5ff;
-  color: #14478a;
 }
 
 .image-container {
@@ -138,40 +132,27 @@ export default {
   gap: 16px;
 }
 
+/* 进入系统按钮：保留绿色渐变，与主色按钮区分 */
 .btn-enter-system {
-  background: linear-gradient(135deg, #19be6b, #0ea557);
-  box-shadow: 0 2px 8px rgba(25, 190, 107, 0.3);
+  padding: 12px 40px !important;
+  font-size: 16px !important;
+  font-weight: 500 !important;
+  letter-spacing: 2px !important;
+  background: linear-gradient(135deg, var(--oc-success, #19be6b), #0ea557) !important;
+  border: none !important;
+  box-shadow: 0 4px 14px rgba(25, 190, 107, 0.35) !important;
 }
 
 .btn-enter-system:hover {
-  background: linear-gradient(135deg, #0ea557, #078c47);
-  box-shadow: 0 4px 12px rgba(25, 190, 107, 0.4);
-}
-
-.btn-primary {
-  padding: 10px 32px;
-  font-size: 15px;
-  font-weight: 500;
-  color: #fff;
-  background: linear-gradient(135deg, #3584e4, #1a5fb4);
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  letter-spacing: 1px;
-  transition: background 0.3s, box-shadow 0.3s;
-  box-shadow: 0 2px 8px rgba(26, 95, 180, 0.3);
-}
-
-.btn-primary:hover {
-  background: linear-gradient(135deg, #1a5fb4, #14478a);
-  box-shadow: 0 4px 12px rgba(26, 95, 180, 0.4);
+  background: linear-gradient(135deg, #0ea557, #078c47) !important;
+  box-shadow: 0 6px 18px rgba(25, 190, 107, 0.45) !important;
 }
 
 .footer-record {
   text-align: center;
   padding: 12px 0;
-  background: #f0f5ff;
-  color: #1a5fb4;
+  background: var(--oc-primary-bg, #f0f5ff);
+  color: var(--oc-primary-dark, #1a5fb4);
   font-size: 12px;
   line-height: 1.6;
 }
@@ -184,7 +165,7 @@ export default {
 }
 
 .footer-record a {
-  color: #1a5fb4;
+  color: var(--oc-primary-dark, #1a5fb4);
   text-decoration: none;
 }
 

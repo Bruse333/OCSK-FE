@@ -1,0 +1,81 @@
+/**
+ * OCSKILL-FE 项目主题变量
+ * PC + H5 共用，统一配色，消除硬编码
+ */
+:root {
+  /* 主色 */
+  --oc-primary: #3584e4;
+  --oc-primary-dark: #1a5fb4;
+  --oc-primary-deeper: #14478a;
+  --oc-primary-light: #5fb0e6;
+  --oc-primary-lighter: #87ceeb;
+
+  /* 文字 */
+  --oc-title: #1a3a6e;
+  --oc-text: #46587a;
+  --oc-text-light: #8a94a6;
+  --oc-text-placeholder: #b8c2d4;
+
+  /* 背景 */
+  --oc-bg: #f5f7fa;
+  --oc-bg-soft: #fafbfc;
+  --oc-bg-white: #ffffff;
+
+  /* 边框 */
+  --oc-border: #eef1f6;
+  --oc-border-light: #f0f0f0;
+  --oc-border-input: #d0d5dd;
+
+  /* 功能色 */
+  --oc-success: #19be6b;
+  --oc-warning: #ff9900;
+  --oc-danger: #ed4014;
+  --oc-danger-dark: #d03020;
+  --oc-info: #909399;
+
+  /* 功能色浅底 */
+  --oc-success-bg: #ecf9f1;
+  --oc-warning-bg: #fff7e6;
+  --oc-danger-bg: #fef0f0;
+  --oc-primary-bg: #f0f5ff;
+
+  /* 圆角 */
+  --oc-radius: 10px;
+  --oc-radius-lg: 12px;
+  --oc-radius-sm: 8px;
+  --oc-radius-pill: 20px;
+
+  /* 阴影 */
+  --oc-shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.04);
+  --oc-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --oc-shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.16);
+
+  /* 过渡 */
+  --oc-transition: all 0.2s;
+}
+
+/* 让 el-button 主色与项目主色一致 */
+.el-button--primary {
+  --el-button-bg-color: var(--oc-primary);
+  --el-button-border-color: var(--oc-primary);
+  --el-button-hover-bg-color: var(--oc-primary-dark);
+  --el-button-hover-border-color: var(--oc-primary-dark);
+  --el-button-active-bg-color: var(--oc-primary-deeper);
+  --el-button-active-border-color: var(--oc-primary-deeper);
+}
+
+/* el-dialog 标题色 */
+.el-dialog__title {
+  color: var(--oc-title);
+}
+
+/* el-input focus 色与主色一致 */
+.el-input__wrapper.is-focus,
+.el-textarea__inner:focus {
+  box-shadow: 0 0 0 1px var(--oc-primary) inset !important;
+}
+
+/* el-pagination 激活色 */
+.el-pagination.is-background .el-pager li.is-active {
+  background-color: var(--oc-primary);
+}

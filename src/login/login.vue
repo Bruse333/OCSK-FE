@@ -12,15 +12,32 @@
         <form @submit.prevent="handleLogin">
           <div class="form-group">
             <label for="username">用户名</label>
-            <input id="username" v-model="loginForm.username" type="text" placeholder="请输入用户名" required />
+            <el-input
+              id="username"
+              v-model="loginForm.username"
+              placeholder="请输入用户名"
+              :prefix-icon="User"
+              size="large"
+              clearable
+            />
           </div>
           <div class="form-group">
             <label for="password">密码</label>
-            <input id="password" v-model="loginForm.password" type="password" placeholder="请输入密码" autocomplete="off"
-              required />
+            <el-input
+              id="password"
+              v-model="loginForm.password"
+              type="password"
+              placeholder="请输入密码"
+              :prefix-icon="Lock"
+              size="large"
+              show-password
+              autocomplete="off"
+            />
           </div>
-          <button type="submit" class="btn-login">登录</button>
-          <el-link type="primary" @click="handleGuestLogin">游客登陆</el-link>
+          <el-button type="primary" native-type="submit" size="large" class="btn-login">登录</el-button>
+          <div class="guest-link">
+            <el-link type="primary" :underline="false" @click="handleGuestLogin">游客登陆</el-link>
+          </div>
         </form>
       </div>
     </div>
@@ -41,7 +58,9 @@
 </template>
 
 <script>
+import { markRaw } from 'vue'
 import { ElMessage } from 'element-plus'
+import { User, Lock } from '@element-plus/icons-vue'
 import request from '@/utils/request'
 import { setToken, setUsername, setPrivilege } from '@/utils/token'
 
@@ -52,7 +71,9 @@ export default {
       loginForm: {
         username: '',
         password: ''
-      }
+      },
+      User: markRaw(User),
+      Lock: markRaw(Lock)
     }
   },
   methods: {
@@ -109,15 +130,15 @@ export default {
 }
 
 .site-header {
-  background: #f0f5ff;
+  background: var(--oc-primary-bg, #f0f5ff);
   padding: 14px 24px;
   text-align: center;
-  border-bottom: 1px solid #d0dff0;
+  border-bottom: 1px solid var(--oc-border, #d0dff0);
 }
 
 .site-name {
   margin: 0;
-  color: #1a3a6e;
+  color: var(--oc-title, #1a3a6e);
   font-size: 22px;
   font-weight: 600;
   letter-spacing: 3px;
@@ -145,10 +166,10 @@ export default {
   transform: translateY(-50%);
   z-index: 10;
   background: rgba(255, 255, 255, 0.92);
-  border-radius: 12px;
+  border-radius: var(--oc-radius-lg, 12px);
   padding: 36px 32px;
   width: 340px;
-  box-shadow: 0 8px 32px rgba(26, 58, 110, 0.25);
+  box-shadow: var(--oc-shadow-lg, 0 8px 32px rgba(26, 58, 110, 0.25));
   backdrop-filter: blur(8px);
 }
 
@@ -156,7 +177,7 @@ export default {
   margin: 0 0 28px 0;
   font-size: 20px;
   font-weight: 600;
-  color: #1a3a6e;
+  color: var(--oc-title, #1a3a6e);
   text-align: center;
   letter-spacing: 2px;
 }
@@ -167,60 +188,30 @@ export default {
 
 .form-group label {
   display: block;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
   font-size: 14px;
-  color: #1a3a6e;
+  color: var(--oc-title, #1a3a6e);
   font-weight: 500;
-}
-
-.form-group input {
-  width: 100%;
-  padding: 10px 12px;
-  font-size: 14px;
-  border: 1px solid #c8daf0;
-  border-radius: 6px;
-  outline: none;
-  color: #1a3a6e;
-  background: #f8fbff;
-  box-sizing: border-box;
-  transition: border-color 0.2s, box-shadow 0.2s;
-}
-
-.form-group input:focus {
-  border-color: #3584e4;
-  box-shadow: 0 0 0 2px rgba(53, 132, 228, 0.2);
-}
-
-.form-group input::placeholder {
-  color: #a0b8d8;
 }
 
 .btn-login {
   width: 100%;
-  padding: 11px 0;
-  font-size: 15px;
-  font-weight: 500;
-  color: #fff;
-  background: linear-gradient(135deg, #3584e4, #1a5fb4);
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  letter-spacing: 2px;
   margin-top: 8px;
-  transition: background 0.3s, box-shadow 0.3s;
-  box-shadow: 0 2px 8px rgba(26, 95, 180, 0.3);
+  letter-spacing: 4px;
+  font-size: 16px;
+  font-weight: 500;
 }
 
-.btn-login:hover {
-  background: linear-gradient(135deg, #1a5fb4, #14478a);
-  box-shadow: 0 4px 12px rgba(26, 95, 180, 0.4);
+.guest-link {
+  text-align: center;
+  margin-top: 16px;
 }
 
 .footer-record {
   text-align: center;
   padding: 12px 0;
-  background: #f0f5ff;
-  color: #1a5fb4;
+  background: var(--oc-primary-bg, #f0f5ff);
+  color: var(--oc-primary-dark, #1a5fb4);
   font-size: 12px;
   line-height: 1.6;
 }
@@ -233,7 +224,7 @@ export default {
 }
 
 .footer-record a {
-  color: #1a5fb4;
+  color: var(--oc-primary-dark, #1a5fb4);
   text-decoration: none;
 }
 

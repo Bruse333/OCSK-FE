@@ -39,18 +39,19 @@
         </el-select>
       </div>
       <div class="toolbar-spacer"></div>
-      <button class="tb-btn" @click="toggleFullscreen" :title="canvasFullscreen ? '退出全屏 (Esc)' : '全屏编辑'">{{ canvasFullscreen ? '退出全屏' : '全屏' }}</button>
-      <button class="tb-btn" @click="handleNew">新建</button>
-      <button class="tb-btn" @click="handleValidate">校验</button>
-      <button class="tb-btn" @click="handlePreview">预览</button>
-      <button class="tb-btn" @click="triggerImport">导入JSON</button>
-      <button class="tb-btn" @click="handleExport">导出JSON</button>
-      <button
-        class="tb-btn tb-btn-primary"
-        :disabled="submitting"
+      <el-button :icon="FullScreen" @click="toggleFullscreen" :title="canvasFullscreen ? '退出全屏 (Esc)' : '全屏编辑'">{{ canvasFullscreen ? '退出全屏' : '全屏' }}</el-button>
+      <el-button @click="handleNew">新建</el-button>
+      <el-button :icon="Aim" @click="handleValidate">校验</el-button>
+      <el-button :icon="View" @click="handlePreview">预览</el-button>
+      <el-button :icon="Upload" @click="triggerImport">导入JSON</el-button>
+      <el-button :icon="Download" @click="handleExport">导出JSON</el-button>
+      <el-button
+        type="primary"
+        :icon="Promotion"
+        :loading="submitting"
         title="上传流程文件并绑定到所选故障排查记录"
         @click="handleSubmit"
-      >{{ submitting ? '提交中…' : '提交' }}</button>
+      >提交</el-button>
       <input
         ref="importInput"
         type="file"
@@ -62,12 +63,12 @@
 
     <div class="fb-main" :class="{ 'is-fullscreen': canvasFullscreen }">
       <!-- 全屏时浮动退出按钮 -->
-      <button
+      <el-button
         v-if="canvasFullscreen"
         class="fb-exit-fullscreen"
         title="退出全屏 (Esc)"
         @click="toggleFullscreen"
-      >✕ 退出全屏</button>
+      >退出全屏</el-button>
       <!-- 左侧组件面板 -->
       <div class="fb-palette">
         <p class="palette-title">组件面板</p>
@@ -121,36 +122,38 @@
           <div class="panel-section">
             <div class="panel-title-row">
               <span class="panel-title">{{ nodeTypeName(selectedNode.data.nodeType) }}节点</span>
-              <button
+              <el-button
                 v-if="selectedNode.data.nodeType !== 'start'"
-                class="btn-danger-small"
+                type="danger"
+                size="small"
+                :icon="Delete"
                 @click="deleteSelectedNode"
-              >删除节点</button>
+              >删除节点</el-button>
             </div>
 
             <label class="field-label">标题</label>
-            <input class="field-input" v-model="selectedNode.data.label" maxlength="30" placeholder="节点标题" />
+            <el-input v-model="selectedNode.data.label" maxlength="30" placeholder="节点标题" />
 
             <label class="field-label">详细说明</label>
-            <textarea
-              class="field-textarea"
+            <el-input
               v-model="selectedNode.data.description"
-              rows="3"
+              type="textarea"
+              :rows="3"
               maxlength="500"
               placeholder="给排查人员的详细指引（可选）"
-            ></textarea>
+            />
           </div>
 
           <!-- 判断节点 -->
           <div class="panel-section" v-if="selectedNode.data.nodeType === 'decision'">
             <label class="field-label">问题</label>
-            <textarea
-              class="field-textarea"
+            <el-input
               v-model="selectedNode.data.question"
-              rows="2"
+              type="textarea"
+              :rows="2"
               maxlength="200"
               placeholder="向用户提问，例如：电源指示灯是否亮起？"
-            ></textarea>
+            />
 
             <label class="field-label">分支选项（每个选项对应一条出边）</label>
             <div
@@ -158,51 +161,50 @@
               :key="opt.id"
               class="option-edit-row"
             >
-              <input
-                class="field-input option-input"
+              <el-input
+                class="option-input"
                 v-model="opt.label"
                 maxlength="20"
                 :placeholder="'选项 ' + (i + 1)"
                 @input="syncDecisionEdgeLabels(selectedNode)"
               />
-              <button
-                class="btn-icon"
+              <el-button
+                :icon="Close"
+                circle
+                text
+                size="small"
                 :disabled="selectedNode.data.options.length <= 2"
                 title="删除选项"
                 @click="removeOption(selectedNode, opt)"
-              >×</button>
+              />
             </div>
-            <button class="btn-plain" @click="addOption(selectedNode)">+ 添加选项</button>
+            <el-button text :icon="Plus" @click="addOption(selectedNode)">添加选项</el-button>
             <p class="field-tip">提示：选项文字修改后，已连线的分支文字会同步更新。</p>
           </div>
 
           <!-- 结束节点 -->
           <div class="panel-section" v-if="selectedNode.data.nodeType === 'end'">
             <label class="field-label">排查结果</label>
-            <div class="radio-row">
-              <label class="radio-item">
-                <input type="radio" :value="true" v-model="selectedNode.data.result.resolved" /> 已解决
-              </label>
-              <label class="radio-item">
-                <input type="radio" :value="false" v-model="selectedNode.data.result.resolved" /> 未解决
-              </label>
-            </div>
+            <el-radio-group v-model="selectedNode.data.result.resolved">
+              <el-radio :value="true">已解决</el-radio>
+              <el-radio :value="false">未解决</el-radio>
+            </el-radio-group>
             <label class="field-label">结论文本</label>
-            <textarea
-              class="field-textarea"
+            <el-input
               v-model="selectedNode.data.result.conclusion"
-              rows="2"
+              type="textarea"
+              :rows="2"
               maxlength="300"
               placeholder="例如：保险丝熔断，更换 10A 保险丝后恢复"
-            ></textarea>
+            />
             <label class="field-label">建议措施（可选）</label>
-            <textarea
-              class="field-textarea"
+            <el-input
               v-model="selectedNode.data.result.suggestion"
-              rows="2"
+              type="textarea"
+              :rows="2"
               maxlength="300"
               placeholder="例如：建议备件清单中加入该型号保险丝"
-            ></textarea>
+            />
           </div>
 
           <!-- 附件（开始节点不需要） -->
@@ -222,12 +224,12 @@
                 <span v-else class="uploading-text">…</span>
               </div>
             </div>
-            <button
-              class="btn-plain btn-from-record"
-              :disabled="!hasRecordMedia('photo')"
-              :title="hasRecordMedia('photo') ? '从当前排查记录的图片中选择' : '当前排查记录没有图片'"
-              @click="openPhotoPicker"
-            >从排查记录选择图片</button>
+            <el-button
+                text
+                :disabled="!hasRecordMedia('photo')"
+                :title="hasRecordMedia('photo') ? '从当前排查记录的图片中选择' : '当前排查记录没有图片'"
+                @click="openPhotoPicker"
+              >从排查记录选择图片</el-button>
 
             <label class="field-label">文档（pdf/doc/docx，单个 &lt; 2M）</label>
             <div class="doc-list">
@@ -235,15 +237,15 @@
                 <span class="doc-name" :title="url">{{ docDisplayName(url, i) }}</span>
                 <span class="doc-remove" @click="removeDoc(selectedNode, i)">×</span>
               </div>
-              <button class="btn-plain" :disabled="uploadingDoc" @click="triggerDocPick">
-                {{ uploadingDoc ? '上传中…' : '+ 添加文档' }}
-              </button>
-              <button
-                class="btn-plain btn-from-record"
+              <el-button text :icon="Plus" :disabled="uploadingDoc" @click="triggerDocPick">
+                {{ uploadingDoc ? '上传中…' : '添加文档' }}
+              </el-button>
+              <el-button
+                text
                 :disabled="!hasRecordMedia('doc')"
                 :title="hasRecordMedia('doc') ? '从当前排查记录的文档中选择' : '当前排查记录没有文档'"
                 @click="openDocPicker"
-              >从排查记录选择文档</button>
+              >从排查记录选择文档</el-button>
             </div>
           </div>
         </template>
@@ -253,7 +255,7 @@
           <div class="panel-section">
             <div class="panel-title-row">
               <span class="panel-title">连线</span>
-              <button class="btn-danger-small" @click="deleteSelectedEdge">删除连线</button>
+              <el-button type="danger" size="small" :icon="Delete" @click="deleteSelectedEdge">删除连线</el-button>
             </div>
             <p class="edge-info">
               {{ edgeEndpointLabel(selectedEdge.source) }}
@@ -263,7 +265,7 @@
               → {{ edgeEndpointLabel(selectedEdge.target) }}
             </p>
             <label class="field-label">连线文字（可选）</label>
-            <input class="field-input" v-model="selectedEdge.label" maxlength="20" placeholder="显示在连线上的文字" />
+            <el-input v-model="selectedEdge.label" maxlength="20" placeholder="显示在连线上的文字" />
           </div>
         </template>
 
@@ -272,15 +274,15 @@
           <div class="panel-section">
             <span class="panel-title">流程信息</span>
             <label class="field-label">流程名称</label>
-            <input class="field-input" v-model="meta.name" maxlength="50" placeholder="请输入流程名称" />
+            <el-input v-model="meta.name" maxlength="50" placeholder="请输入流程名称" />
             <label class="field-label">流程描述</label>
-            <textarea
-              class="field-textarea"
+            <el-input
               v-model="meta.description"
-              rows="3"
+              type="textarea"
+              :rows="3"
               maxlength="300"
               placeholder="流程用途说明（可选）"
-            ></textarea>
+            />
             <div class="meta-stats">
               <span>节点：{{ vfNodes.length }}</span>
               <span>连线：{{ vfEdges.length }}</span>
@@ -346,12 +348,12 @@
         <p v-if="pickerDocOptions.length === 0" class="picker-empty">该排查记录没有文档</p>
       </div>
       <template #footer>
-        <button class="tb-btn" @click="showMediaPicker = false">取消</button>
-        <button
-          class="tb-btn tb-btn-primary"
+        <el-button @click="showMediaPicker = false">取消</el-button>
+        <el-button
+          type="primary"
           :disabled="pickerSelected.length === 0"
           @click="confirmMediaPicker"
-        >{{ pickerSelected.length ? `添加选中 ${pickerSelected.length} 项` : '添加选中' }}</button>
+        >{{ pickerSelected.length ? `添加选中 ${pickerSelected.length} 项` : '添加选中' }}</el-button>
       </template>
     </el-dialog>
 
@@ -378,7 +380,7 @@
         </li>
       </ul>
       <template #footer>
-        <button class="tb-btn" @click="showReport = false">关闭</button>
+        <el-button @click="showReport = false">关闭</el-button>
       </template>
     </el-dialog>
 
@@ -396,10 +398,12 @@
 </template>
 
 <script>
+import { markRaw } from 'vue'
 import { VueFlow, useVueFlow } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
 import { Controls } from '@vue-flow/controls'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Plus, Close, Delete, FullScreen, Aim, View, Upload, Download, Promotion } from '@element-plus/icons-vue'
 import request from '@/utils/request'
 import { getUsername } from '@/utils/token'
 import { uploadFile } from '@/utils/uploadQueue'
@@ -453,6 +457,10 @@ export default {
   },
   data() {
     return {
+      // 图标引用（markRaw 避免组件被响应式化）
+      Plus: markRaw(Plus), Close: markRaw(Close), Delete: markRaw(Delete),
+      FullScreen: markRaw(FullScreen), Aim: markRaw(Aim), View: markRaw(View),
+      Upload: markRaw(Upload), Download: markRaw(Download), Promotion: markRaw(Promotion),
       // Vue Flow 画布元素（业务数据存放在 node.data 上）
       vfNodes: [],
       vfEdges: [],
@@ -1588,35 +1596,6 @@ export default {
   flex: 1;
 }
 
-.tb-btn {
-  padding: 7px 16px;
-  font-size: 13px;
-  color: #1a5fb4;
-  background: #fff;
-  border: 1px solid #3584e4;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.tb-btn:hover {
-  background: #f0f5ff;
-}
-
-.tb-btn-primary {
-  color: #fff;
-  background: #3584e4;
-}
-
-.tb-btn-primary:hover {
-  background: #1a5fb4;
-}
-
-.tb-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
 /* 主区域 */
 .fb-main {
   flex: 1;
@@ -1638,18 +1617,7 @@ export default {
   top: 14px;
   right: 18px;
   z-index: 910;
-  padding: 6px 14px;
-  font-size: 13px;
-  color: #1a5fb4;
-  background: #fff;
-  border: 1px solid #3584e4;
-  border-radius: 6px;
-  cursor: pointer;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-}
-
-.fb-exit-fullscreen:hover {
-  background: #f0f5ff;
 }
 
 /* 左侧组件面板 */
@@ -1769,89 +1737,11 @@ export default {
   margin-top: 6px;
 }
 
-.field-input {
-  padding: 7px 10px;
-  font-size: 13px;
-  color: #1a3a6e;
-  border: 1px solid #d0dff0;
-  border-radius: 6px;
-  outline: none;
-}
-
-.field-input:focus {
-  border-color: #3584e4;
-}
-
-.field-textarea {
-  padding: 7px 10px;
-  font-size: 13px;
-  color: #1a3a6e;
-  border: 1px solid #d0dff0;
-  border-radius: 6px;
-  outline: none;
-  resize: vertical;
-  font-family: inherit;
-}
-
-.field-textarea:focus {
-  border-color: #3584e4;
-}
-
 .field-tip {
   margin: 4px 0 0;
   font-size: 11px;
   color: #9aa7bd;
   line-height: 1.6;
-}
-
-.btn-danger-small {
-  padding: 4px 10px;
-  font-size: 12px;
-  color: #ed4014;
-  background: #fff;
-  border: 1px solid #ed4014;
-  border-radius: 5px;
-  cursor: pointer;
-}
-
-.btn-danger-small:hover {
-  background: #fdf0ee;
-}
-
-.btn-plain {
-  padding: 7px 10px;
-  font-size: 12px;
-  color: #1a5fb4;
-  background: #f0f5ff;
-  border: 1px dashed #9ab8e8;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.btn-plain:hover {
-  background: #e6f1fb;
-}
-
-.btn-plain:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.btn-icon {
-  width: 30px;
-  height: 30px;
-  flex-shrink: 0;
-  font-size: 15px;
-  color: #ed4014;
-  background: #fff;
-  border: 1px solid #d0dff0;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.btn-icon:disabled {
-  color: #b8c2d4;
-  cursor: not-allowed;
 }
 
 .option-edit-row {
@@ -1862,20 +1752,6 @@ export default {
 
 .option-input {
   flex: 1;
-}
-
-.radio-row {
-  display: flex;
-  gap: 16px;
-}
-
-.radio-item {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 13px;
-  color: #1a3a6e;
-  cursor: pointer;
 }
 
 /* 附件 */

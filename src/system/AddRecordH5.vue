@@ -84,7 +84,7 @@
       <button class="h5-submit-btn" :disabled="privilege < 2" @click="handleSubmit">确认提交</button>
     </div>
 
-    <!-- 船型选择器 -->
+    <!-- 船型选择器（底部弹出） -->
     <div class="h5-modal-overlay" v-if="showShipPicker" @click.self="showShipPicker = false">
       <div class="h5-picker-dialog">
         <div class="h5-picker-header">
@@ -113,7 +113,6 @@
     <div class="h5-modal-overlay" v-if="showAddShipModal" @click.self="cancelAddShip">
       <div class="h5-confirm-dialog">
         <div class="h5-confirm-title">添加新船型</div>
-        <div class="h5-confirm-error" v-if="addShipError">{{ addShipError }}</div>
         <input v-model="newShipName" class="h5-confirm-input" placeholder="请输入船型名称" maxlength="20" />
         <div class="h5-confirm-btns">
           <button class="h5-btn-cancel" @click="cancelAddShip">取消</button>
@@ -121,25 +120,16 @@
         </div>
       </div>
     </div>
-
-    <!-- 提示弹框 -->
-    <transition name="fade">
-      <div v-if="alertBox.show" class="h5-alert-overlay" @click.self="closeAlert">
-        <div class="h5-alert-dialog">
-          <p class="h5-alert-msg">{{ alertBox.msg }}</p>
-          <button class="h5-alert-btn" @click="closeAlert">确定</button>
-        </div>
-      </div>
-    </transition>
   </div>
 </template>
 
 <script>
+import { ElMessage } from 'element-plus'
 import request from '@/utils/request'
 import { getPrivilege } from '@/utils/token'
 import { deleteFiles } from '@/utils/file'
 import { uploadFile } from '@/utils/uploadQueue'
-import { ElNotification } from 'element-plus'
+
 export default {
   name: 'AddRecordPageH5',
   data() {
@@ -154,9 +144,7 @@ export default {
       fileList: [],
       showAddShipModal: false,
       newShipName: '',
-      addShipError: '',
-      privilege: 1,
-      alertBox: { show: false, msg: '' }
+      privilege: 1
     }
   },
   created() {
@@ -164,21 +152,13 @@ export default {
     this.fetchShips()
   },
   methods: {
-    showAlert(msg) {
-      this.alertBox.msg = msg
-      this.alertBox.show = true
-    },
-    closeAlert() {
-      this.alertBox.show = false
-    },
-
     fetchShips() {
       request.get('/ships').then(res => {
         if (res.data.code === 1 && res.data.data) {
           this.shipList = res.data.data.map(item => ({ id: item.id, name: item.name }))
         }
       }).catch(() => {
-        this.showAlert('获取船型列表失败！')
+        ElMessage({ message: '获取船型列表失败！', type: 'error' })
       })
     },
     selectShip(id, name) {
@@ -189,23 +169,21 @@ export default {
     cancelAddShip() {
       this.showAddShipModal = false
       this.newShipName = ''
-      this.addShipError = ''
     },
     confirmAddShip() {
       const name = this.newShipName.trim()
-      if (!name) { this.showAlert('请输入船型名称'); return }
+      if (!name) { ElMessage({ message: '请输入船型名称', type: 'warning' }); return }
       request.put('/ships', { name }).then(res => {
         if (res.data.code === 1) {
-          this.showAlert('添加成功')
+          ElMessage({ message: '添加成功', type: 'success' })
           this.showAddShipModal = false
           this.newShipName = ''
-          this.addShipError = ''
           this.fetchShips()
         } else {
-          this.addShipError = res.data.msg || '添加失败'
+          ElMessage({ message: res.data.msg || '添加失败', type: 'error' })
         }
       }).catch(() => {
-        this.addShipError = '添加失败，请重试'
+        ElMessage({ message: '添加失败，请重试', type: 'error' })
       })
     },
 
@@ -228,10 +206,10 @@ export default {
     choosePhoto(e) {
       const files = Array.from(e.target.files)
       e.target.value = ''
-      if (this.privilege < 2) { this.showAlert('权限不足'); return }
-      if (this.photoList.length + files.length > 9) { this.showAlert('最多9张照片'); return }
+      if (this.privilege < 2) { ElMessage({ message: '权限不足', type: 'error' }); return }
+      if (this.photoList.length + files.length > 9) { ElMessage({ message: '最多9张照片', type: 'warning' }); return }
       const maxSize = 2 * 1024 * 1024
-      for (const f of files) { if (f.size > maxSize) { this.showAlert('单张不能超过2M'); return } }
+      for (const f of files) { if (f.size > maxSize) { ElMessage({ message: '单张不能超过2M', type: 'warning' }); return } }
       files.forEach(file => {
         const preview = URL.createObjectURL(file)
         const baseLen = this.photoList.length
@@ -247,9 +225,9 @@ export default {
     chooseFile(e) {
       const files = Array.from(e.target.files)
       e.target.value = ''
-      if (this.privilege < 2) { this.showAlert('权限不足'); return }
+      if (this.privilege < 2) { ElMessage({ message: '权限不足', type: 'error' }); return }
       const maxSize = 2 * 1024 * 1024
-      for (const f of files) { if (f.size > maxSize) { this.showAlert('单个文件不能超过2M'); return } }
+      for (const f of files) { if (f.size > maxSize) { ElMessage({ message: '单个文件不能超过2M', type: 'warning' }); return } }
       files.forEach(file => {
         const baseLen = this.fileList.length
         this.fileList.push({ name: file.name, sizeText: this.formatFileSize(file.size), url: '', uploading: true })
@@ -274,13 +252,13 @@ export default {
     },
 
     handleSubmit() {
-      if (this.privilege < 2) { this.showAlert('权限不足'); return }
-      if (!this.selectedShipId) { this.showAlert('请选择船型'); return }
-      if (!this.phenomenon.trim()) { this.showAlert('请输入故障现象'); return }
+      if (this.privilege < 2) { ElMessage({ message: '权限不足', type: 'warning' }); return }
+      if (!this.selectedShipId) { ElMessage({ message: '请选择船型', type: 'warning' }); return }
+      if (!this.phenomenon.trim()) { ElMessage({ message: '请输入故障现象', type: 'warning' }); return }
       const shootingStr = this.joinSteps()
-      if (!shootingStr) { this.showAlert('请至少输入一步排查内容'); return }
-      for (const p of this.photoList) { if (p.uploading) { this.showAlert('照片上传中'); return } }
-      for (const f of this.fileList) { if (f.uploading) { this.showAlert('文件上传中'); return } }
+      if (!shootingStr) { ElMessage({ message: '请至少输入一步排查内容', type: 'warning' }); return }
+      for (const p of this.photoList) { if (p.uploading) { ElMessage({ message: '照片上传中', type: 'warning' }); return } }
+      for (const f of this.fileList) { if (f.uploading) { ElMessage({ message: '文件上传中', type: 'warning' }); return } }
       const submitData = {
         shipId: this.selectedShipId,
         phenomenon: this.phenomenon.trim(),
@@ -290,7 +268,7 @@ export default {
       }
       request.put('/trbsts', submitData).then(res => {
         if (res.data.code === 1) {
-          this.showAlert('提交成功')
+          ElMessage({ message: '提交成功', type: 'success' })
           this.selectedShipId = ''
           this.selectedShipName = ''
           this.phenomenon = ''
@@ -298,10 +276,10 @@ export default {
           this.photoList = []
           this.fileList = []
         } else {
-          this.showAlert(res.data.msg || '提交失败')
+          ElMessage({ message: res.data.msg || '提交失败', type: 'error' })
         }
       }).catch(() => {
-        this.showAlert('提交失败')
+        ElMessage({ message: '提交失败', type: 'error' })
       })
     }
   }
@@ -315,7 +293,7 @@ export default {
 
 .h5-form-card {
   background: #fff;
-  border-radius: 10px;
+  border-radius: var(--oc-radius, 10px);
   padding: 14px;
   margin-bottom: 10px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
@@ -328,17 +306,17 @@ export default {
   margin-bottom: 12px;
   font-size: 15px;
   font-weight: 600;
-  color: #333;
+  color: var(--oc-title, #333);
 }
 
 .h5-required {
-  color: #ed4014;
+  color: var(--oc-danger, #ed4014);
 }
 
 .h5-hint {
   margin-left: auto;
   font-size: 12px;
-  color: #999;
+  color: var(--oc-text-light, #999);
   font-weight: normal;
 }
 
@@ -347,19 +325,19 @@ export default {
   align-items: center;
   justify-content: space-between;
   padding: 11px 12px;
-  border: 1px solid #e0e4e8;
+  border: 1px solid var(--oc-border, #e0e4e8);
   border-radius: 8px;
-  background: #fafbfc;
+  background: var(--oc-bg-soft, #fafbfc);
   font-size: 15px;
   color: #333;
 }
 
 .h5-select-box .placeholder {
-  color: #999;
+  color: var(--oc-text-light, #999);
 }
 
 .h5-arrow {
-  color: #999;
+  color: var(--oc-text-light, #999);
   font-size: 10px;
   transform: rotate(90deg);
 }
@@ -368,13 +346,14 @@ export default {
   width: 100%;
   min-height: 80px;
   padding: 10px;
-  border: 1px solid #e0e4e8;
+  border: 1px solid var(--oc-border, #e0e4e8);
   border-radius: 8px;
   font-size: 14px;
   box-sizing: border-box;
   resize: vertical;
   outline: none;
   font-family: inherit;
+  background: var(--oc-bg-soft, #fafbfc);
 }
 
 .h5-steps {
@@ -393,7 +372,7 @@ export default {
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  background: #1a5fb4;
+  background: linear-gradient(135deg, var(--oc-primary, #3584e4), var(--oc-primary-dark, #1a5fb4));
   color: #fff;
   font-size: 13px;
   display: flex;
@@ -405,19 +384,20 @@ export default {
 .h5-step-input {
   flex: 1;
   height: 38px;
-  border: 1px solid #e0e4e8;
+  border: 1px solid var(--oc-border, #e0e4e8);
   border-radius: 8px;
   padding: 0 10px;
   font-size: 14px;
   outline: none;
   box-sizing: border-box;
+  background: var(--oc-bg-soft, #fafbfc);
 }
 
 .h5-step-del {
   background: none;
   border: none;
   font-size: 18px;
-  color: #ed4014;
+  color: var(--oc-danger, #ed4014);
   cursor: pointer;
 }
 
@@ -425,9 +405,9 @@ export default {
   width: 100%;
   padding: 8px 0;
   font-size: 13px;
-  color: #1a5fb4;
+  color: var(--oc-primary-dark, #1a5fb4);
   background: none;
-  border: 1px dashed #1a5fb4;
+  border: 1px dashed var(--oc-primary-dark, #1a5fb4);
   border-radius: 6px;
   cursor: pointer;
 }
@@ -486,14 +466,14 @@ export default {
 .h5-upload-add {
   width: 70px;
   height: 70px;
-  border: 1px dashed #d0d5dd;
+  border: 1px dashed var(--oc-border, #d0d5dd);
   border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 24px;
-  color: #999;
-  background: #fafbfc;
+  color: var(--oc-text-light, #999);
+  background: var(--oc-bg-soft, #fafbfc);
   cursor: pointer;
 }
 
@@ -512,7 +492,7 @@ export default {
   justify-content: space-between;
   align-items: center;
   padding: 8px 10px;
-  background: #fafbfc;
+  background: var(--oc-bg-soft, #fafbfc);
   border-radius: 6px;
   margin-bottom: 6px;
   font-size: 13px;
@@ -529,7 +509,7 @@ export default {
   padding: 12px 0;
   font-size: 16px;
   color: #fff;
-  background: linear-gradient(135deg, #3584e4, #1a5fb4);
+  background: linear-gradient(135deg, var(--oc-primary, #3584e4), var(--oc-primary-dark, #1a5fb4));
   border: none;
   border-radius: 8px;
   cursor: pointer;
@@ -546,7 +526,7 @@ export default {
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(10, 30, 60, 0.5);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -555,9 +535,10 @@ export default {
   box-sizing: border-box;
 }
 
+/* 船型底部弹出式选择器 */
 .h5-picker-dialog {
   background: #fff;
-  border-radius: 12px 12px 0 0;
+  border-radius: var(--oc-radius-lg, 12px) var(--oc-radius-lg, 12px) 0 0;
   width: 100%;
   max-height: 60vh;
   display: flex;
@@ -571,9 +552,10 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 14px 16px;
-  background: linear-gradient(135deg, #3584e4, #1a5fb4);
-  color: #fff;
+  padding: 16px;
+  background: #fff;
+  color: var(--oc-title, #1a3a6e);
+  border-bottom: 1px solid var(--oc-border, #eef1f6);
 }
 
 .h5-picker-header span {
@@ -584,9 +566,10 @@ export default {
 .h5-picker-close {
   background: none;
   border: none;
-  color: #fff;
+  color: var(--oc-text-light, #999);
   font-size: 22px;
   cursor: pointer;
+  line-height: 1;
 }
 
 .h5-picker-body {
@@ -598,12 +581,12 @@ export default {
   padding: 14px 16px;
   font-size: 15px;
   color: #333;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--oc-border, #f0f0f0);
   cursor: pointer;
 }
 
 .h5-picker-item.active {
-  color: #1a5fb4;
+  color: var(--oc-primary-dark, #1a5fb4);
   background: #e8f4ff;
   font-weight: 600;
 }
@@ -614,15 +597,16 @@ export default {
   justify-content: center;
   gap: 6px;
   padding: 14px;
-  color: #1a5fb4;
+  color: var(--oc-primary-dark, #1a5fb4);
   font-size: 14px;
-  border-top: 1px solid #f0f0f0;
+  border-top: 1px solid var(--oc-border, #f0f0f0);
   cursor: pointer;
 }
 
+/* 添加船型弹窗 */
 .h5-confirm-dialog {
   background: #fff;
-  border-radius: 12px;
+  border-radius: var(--oc-radius-lg, 12px);
   padding: 20px;
   width: 100%;
   max-width: 300px;
@@ -631,27 +615,22 @@ export default {
 .h5-confirm-title {
   font-size: 16px;
   font-weight: 600;
-  color: #333;
+  color: var(--oc-title, #1a3a6e);
   margin-bottom: 16px;
   text-align: center;
-}
-
-.h5-confirm-error {
-  color: #ed4014;
-  font-size: 12px;
-  margin-bottom: 10px;
 }
 
 .h5-confirm-input {
   width: 100%;
   height: 40px;
-  border: 1px solid #e0e4e8;
+  border: 1px solid var(--oc-border, #e0e4e8);
   border-radius: 8px;
   padding: 0 12px;
   font-size: 14px;
   box-sizing: border-box;
   outline: none;
   margin-bottom: 16px;
+  background: var(--oc-bg-soft, #fafbfc);
 }
 
 .h5-confirm-btns {
@@ -669,66 +648,14 @@ export default {
 }
 
 .h5-btn-cancel {
-  color: #1a5fb4;
+  color: var(--oc-primary-dark, #1a5fb4);
   background: #fff;
-  border: 1px solid #3584e4;
+  border: 1px solid var(--oc-primary, #3584e4);
 }
 
 .h5-btn-submit {
   color: #fff;
-  background: #1a5fb4;
+  background: linear-gradient(135deg, var(--oc-primary, #3584e4), var(--oc-primary-dark, #1a5fb4));
   border: none;
-}
-
-/* 提示弹框 */
-.h5-alert-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(0, 0, 0, 0.45);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 2000;
-}
-
-.h5-alert-dialog {
-  background: #fff;
-  border-radius: 10px;
-  width: 80vw;
-  max-width: 300px;
-  overflow: hidden;
-}
-
-.h5-alert-msg {
-  margin: 0;
-  padding: 24px 20px;
-  font-size: 15px;
-  color: #333;
-  text-align: center;
-  line-height: 1.5;
-}
-
-.h5-alert-btn {
-  display: block;
-  width: 100%;
-  padding: 12px 0;
-  font-size: 15px;
-  color: #fff;
-  background: #1a5fb4;
-  border: none;
-  cursor: pointer;
-}
-
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.25s;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
 }
 </style>

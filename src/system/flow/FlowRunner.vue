@@ -257,10 +257,10 @@ export default {
 }
 
 .runner-body {
-  background: #fff;
-  border: 1px solid #e3eaf5;
-  border-radius: 10px;
-  padding: 18px 20px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
 }
 
 .runner-error {

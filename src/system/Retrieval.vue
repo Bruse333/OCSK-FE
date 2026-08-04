@@ -6,23 +6,20 @@
         <!-- 船型选择 -->
         <div class="field-group">
           <label class="field-label">船型</label>
-          <div class="ship-selector" @click="toggleShipDropdown">
-            <span class="selector-text" :class="{ selected: selectedShipName }">
-              {{ selectedShipName || '请选择船型' }}
-            </span>
-            <span class="selector-arrow" :class="{ up: showShipDropdown }">&#9662;</span>
-            <div class="ship-dropdown" v-if="showShipDropdown">
-              <div
-                v-for="item in shipList"
-                :key="item.shipId"
-                class="ship-option"
-                :class="{ active: selectedShipId === item.shipId }"
-                @click.stop="selectShip(item.shipId, item.name)"
-              >
-                {{ item.name }}
-              </div>
-            </div>
-          </div>
+          <el-select
+            v-model="selectedShipId"
+            placeholder="请选择船型"
+            clearable
+            class="ship-select"
+            @change="onShipChange"
+          >
+            <el-option
+              v-for="item in shipList"
+              :key="item.shipId"
+              :label="item.name"
+              :value="item.shipId"
+            />
+          </el-select>
         </div>
 
         <!-- 关键词 -->
@@ -36,13 +33,13 @@
               </span>
             </div>
             <span class="keyword-placeholder" v-else>点击添加</span>
-            <span class="keyword-add-icon">+</span>
+            <el-icon class="keyword-add-icon"><Plus /></el-icon>
           </div>
         </div>
 
         <!-- 搜索按钮 -->
         <div class="search-btn-wrap">
-          <button class="btn-search" @click="handleSearch">检索</button>
+          <el-button type="primary" size="large" :icon="Search" @click="handleSearch">检索</el-button>
         </div>
       </div>
     </div>
@@ -93,18 +90,20 @@
             </div>
             <div class="card-footer">
               <div class="card-actions">
-                <button
-                  class="card-btn edit-btn"
-                  :class="{ 'btn-disabled': privilege != 3 }"
+                <el-button
+                  size="small"
+                  type="primary"
+                  text
                   :disabled="privilege != 3"
                   @click.stop="openEdit(index)"
-                >编辑</button>
-                <button
-                  class="card-btn delete-btn"
-                  :class="{ 'btn-disabled': privilege < 3 }"
+                >编辑</el-button>
+                <el-button
+                  size="small"
+                  type="danger"
+                  text
                   :disabled="privilege < 3"
                   @click.stop="handleDelete(index)"
-                >删除</button>
+                >删除</el-button>
               </div>
               <span class="card-hint" @click="openDetail(index)">点击查看详情 →</span>
             </div>
@@ -113,105 +112,117 @@
 
         <!-- 分页 -->
         <div class="pagination-wrap" v-if="total > 0">
-          <div class="page-size-selector">
-            <span class="page-label">每页</span>
-            <div class="size-options">
-              <span
-                v-for="size in pageSizeOptions"
-                :key="size"
-                class="size-option"
-                :class="{ active: pageSize === size }"
-                @click="changePageSize(size)"
-              >{{ size }}</span>
-            </div>
-            <span class="page-label">条</span>
-          </div>
-          <div class="page-nav">
-            <button class="page-btn" :disabled="currentPage <= 1" @click="prevPage">上一页</button>
-            <span
-              v-for="p in totalPages"
-              :key="p"
-              class="page-num"
-              :class="{ active: currentPage === p }"
-              @click="changePage(p)"
-            >{{ p }}</span>
-            <button class="page-btn" :disabled="currentPage >= totalPages" @click="nextPage">下一页</button>
-          </div>
+          <el-pagination
+            v-model:current-page="currentPage"
+            :page-size="pageSize"
+            :page-sizes="pageSizeOptions"
+            :total="total"
+            layout="total, sizes, prev, pager, next"
+            background
+            @current-change="onPageChange"
+            @size-change="onSizeChange"
+          />
         </div>
       </template>
     </div>
 
     <!-- 关键词管理弹窗 -->
-    <div class="modal-overlay" v-if="showKeywordModal" @click.self="cancelKeywordModal">
-      <div class="modal-dialog keyword-modal">
-        <div class="modal-header">
-          <h2>管理关键词</h2>
-          <button class="modal-close" @click="cancelKeywordModal">×</button>
+    <el-dialog
+      v-model="showKeywordModal"
+      title="管理关键词"
+      width="500px"
+      :close-on-click-modal="false"
+      append-to-body
+    >
+      <div class="modal-section">
+        <p class="modal-section-title">已添加关键词</p>
+        <div class="modal-kw-tags" v-if="tempKeywords.length > 0">
+          <span v-for="(kw, i) in tempKeywords" :key="i" class="kw-tag">
+            {{ kw }}
+            <span class="kw-tag-close" @click="removeTempKeyword(i)">×</span>
+          </span>
         </div>
-        <div class="modal-body">
-          <div class="modal-section">
-            <p class="modal-section-title">已添加关键词</p>
-            <div class="modal-kw-tags" v-if="tempKeywords.length > 0">
-              <span v-for="(kw, i) in tempKeywords" :key="i" class="kw-tag">
-                {{ kw }}
-                <span class="kw-tag-close" @click="removeTempKeyword(i)">×</span>
-              </span>
-            </div>
-            <p v-else class="no-kw-tip">暂无关键词</p>
-          </div>
-          <div class="modal-section">
-            <p class="modal-section-title">添加关键词</p>
-            <div v-for="(inp, i) in keywordInputs" :key="i" class="kw-input-row">
-              <input
-                v-model="keywordInputs[i]"
-                class="kw-modal-input"
-                placeholder="输入关键词"
-              />
-              <button class="kw-input-delete" @click="removeKeywordInput(i)">×</button>
-            </div>
-            <button class="add-row-btn" @click="addKeywordInput">+ 添加一行</button>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button class="btn-cancel" @click="cancelKeywordModal">取消</button>
-          <button class="btn-submit" @click="confirmKeywords">确定</button>
-        </div>
+        <p v-else class="no-kw-tip">暂无关键词</p>
       </div>
-    </div>
+      <div class="modal-section">
+        <p class="modal-section-title">添加关键词</p>
+        <div v-for="(inp, i) in keywordInputs" :key="i" class="kw-input-row">
+          <el-input v-model="keywordInputs[i]" placeholder="输入关键词" />
+          <el-button :icon="Close" circle text @click="removeKeywordInput(i)" />
+        </div>
+        <el-button class="add-row-btn" text :icon="Plus" @click="addKeywordInput">添加一行</el-button>
+      </div>
+      <template #footer>
+        <el-button @click="cancelKeywordModal">取消</el-button>
+        <el-button type="primary" @click="confirmKeywords">确定</el-button>
+      </template>
+    </el-dialog>
 
     <!-- 详情弹窗 -->
-    <div class="modal-overlay" v-if="showDetailModal" @click.self="closeDetail">
-      <div class="modal-dialog detail-modal">
-        <div class="modal-header">
-          <div>
-            <h2>{{ currentDetail.name }}</h2>
-            <p class="detail-date">创建时间：{{ currentDetail.createTimeStr }}</p>
+    <el-dialog
+      v-model="showDetailModal"
+      width="700px"
+      :close-on-click-modal="false"
+      append-to-body
+      class="detail-dialog"
+    >
+      <template #header>
+        <div class="detail-header">
+          <div class="detail-header-main">
+            <h2 class="detail-title">{{ currentDetail.name }}</h2>
+            <span class="detail-date">
+              <svg class="detail-date-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+              创建于 {{ currentDetail.createTimeStr }}
+            </span>
           </div>
-          <button class="modal-close" @click="closeDetail">×</button>
         </div>
-        <div class="modal-body">
+      </template>
+      <div class="detail-body">
           <!-- 图文/流程模式切换 Tab（仅该记录绑定了流程时显示） -->
           <div class="detail-tabs" v-if="currentDetail.flowUrl">
             <button
               class="detail-tab"
               :class="{ active: detailTab === 'text' }"
               @click="detailTab = 'text'"
-            >图文模式</button>
+            >
+              <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="3" y1="9" x2="21" y2="9"></line>
+                <line x1="9" y1="21" x2="9" y2="9"></line>
+              </svg>
+              图文模式
+            </button>
             <button
               class="detail-tab"
               :class="{ active: detailTab === 'flow' }"
               @click="switchToFlowMode"
-            >流程模式</button>
+            >
+              <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+              </svg>
+              流程模式
+            </button>
           </div>
 
           <!-- 图文模式 -->
           <template v-if="!currentDetail.flowUrl || detailTab === 'text'">
             <div class="detail-block">
-              <div class="detail-block-title"><span class="title-dot"></span>故障现象</div>
+              <div class="detail-block-title">
+                <span class="title-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></span>
+                故障现象
+              </div>
               <p class="detail-text">{{ currentDetail.phenomenon }}</p>
             </div>
             <div class="detail-block">
-              <div class="detail-block-title"><span class="title-dot"></span>排查步骤</div>
+              <div class="detail-block-title">
+                <span class="title-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg></span>
+                排查步骤
+              </div>
               <div class="steps-list">
                 <div v-for="(step, i) in currentDetail.shootingSteps" :key="i" class="step-item">
                   <span class="step-badge">{{ i + 1 }}</span>
@@ -220,22 +231,40 @@
               </div>
             </div>
             <div class="detail-block" v-if="currentDetail.photoList && currentDetail.photoList.length > 0">
-              <div class="detail-block-title"><span class="title-dot"></span>图片附件</div>
+              <div class="detail-block-title">
+                <span class="title-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg></span>
+                图片附件
+                <span class="detail-count">{{ currentDetail.photoList.length }} 张</span>
+              </div>
               <div class="detail-photo-list">
-                <a
+                <div
                   v-for="(url, i) in currentDetail.photoList"
                   :key="i"
-                  :href="url"
-                  target="_blank"
                   class="detail-photo-item"
                 >
-                  <img :src="url" alt="照片" class="detail-photo-img" />
-                  <span class="detail-photo-label">照片{{ i + 1 }}</span>
-                </a>
+                  <el-image
+                    :src="url"
+                    :preview-src-list="currentDetail.photoList"
+                    :initial-index="i"
+                    fit="cover"
+                    class="detail-photo-img"
+                    :alt="`照片 ${i + 1}`"
+                  />
+                  <div class="photo-overlay">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"></path>
+                    </svg>
+                  </div>
+                  <span class="detail-photo-label">照片 {{ i + 1 }}</span>
+                </div>
               </div>
             </div>
             <div class="detail-block" v-if="currentDetail.docList && currentDetail.docList.length > 0">
-              <div class="detail-block-title"><span class="title-dot"></span>文档附件</div>
+              <div class="detail-block-title">
+                <span class="title-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg></span>
+                文档附件
+                <span class="detail-count">{{ currentDetail.docList.length }} 个</span>
+              </div>
               <div class="attach-list">
                 <a
                   v-for="(url, i) in currentDetail.docList"
@@ -243,10 +272,16 @@
                   :href="url"
                   referrerpolicy="origin"
                   target="_blank"
-                  class="attach-item doc-item"
+                  class="attach-item"
                 >
-                  <span class="attach-icon">📄</span>
+                  <span class="attach-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                      <polyline points="14 2 14 8 20 8"></polyline>
+                    </svg>
+                  </span>
                   <span class="attach-name">文件 {{ i + 1 }}</span>
+                  <span class="attach-action">打开</span>
                 </a>
               </div>
             </div>
@@ -258,113 +293,131 @@
               <div class="spinner"></div>
               <p class="state-text">正在加载流程...</p>
             </div>
-            <div v-else-if="flowError" class="flow-state-box">
+            <div v-else-if="flowError" class="flow-state-box flow-state-error">
+              <div class="error-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="8" x2="12" y2="12"></line>
+                  <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+              </div>
               <p class="state-text">{{ flowError }}</p>
-              <button class="btn-cancel" @click="loadDetailFlow">重试</button>
+              <el-button type="primary" @click="loadDetailFlow">重新加载</el-button>
             </div>
-            <FlowRunner v-else-if="detailFlow" :flow="detailFlow" />
+            <div class="flow-runner-card" v-else-if="detailFlow">
+              <FlowRunner :flow="detailFlow" />
+            </div>
           </div>
-        </div>
       </div>
-    </div>
+    </el-dialog>
 
     <!-- 编辑弹窗 -->
-    <div class="modal-overlay" v-if="showEditModal" @click.self="closeEdit">
-      <div class="modal-dialog edit-modal">
-        <div class="modal-header">
-          <div>
-            <h2>编辑排查记录</h2>
-            <p class="edit-subtitle">{{ editForm.name }} | 创建时间：{{ editForm.createTimeStr }}</p>
-          </div>
-          <button class="modal-close" @click="closeEdit">×</button>
+    <el-dialog
+      v-model="showEditModal"
+      width="700px"
+      :close-on-click-modal="false"
+      append-to-body
+      class="edit-dialog"
+    >
+      <template #header>
+        <div class="edit-header">
+          <h2 class="edit-title">编辑排查记录</h2>
+          <p class="edit-subtitle">{{ editForm.name }} | 创建时间：{{ editForm.createTimeStr }}</p>
         </div>
-        <div class="modal-body">
-          <div class="edit-block">
-            <div class="edit-block-title"><span class="title-dot"></span>故障现象<span class="required-mark">*</span></div>
-            <textarea
-              v-model="editForm.phenomenon"
-              class="edit-textarea"
-              placeholder="请描述故障现象"
-              maxlength="500"
-            ></textarea>
+      </template>
+      <div class="edit-block">
+        <div class="edit-block-title"><span class="title-dot"></span>故障现象<span class="required-mark">*</span></div>
+        <el-input
+          v-model="editForm.phenomenon"
+          type="textarea"
+          :rows="3"
+          placeholder="请描述故障现象"
+          maxlength="500"
+          show-word-limit
+        />
+      </div>
+      <div class="edit-block">
+        <div class="edit-block-title"><span class="title-dot"></span>排查步骤<span class="required-mark">*</span></div>
+        <div class="edit-steps-container">
+          <div v-for="(step, i) in editForm.steps" :key="i" class="edit-step-row">
+            <span class="edit-step-badge">{{ i + 1 }}</span>
+            <el-input
+              v-model="editForm.steps[i]"
+              type="textarea"
+              :autosize="{ minRows: 1, maxRows: 4 }"
+              :placeholder="`请输入第 ${i + 1} 步排查内容`"
+            />
+            <el-button
+              v-if="editForm.steps.length > 1"
+              :icon="Close"
+              circle
+              text
+              @click="removeEditStep(i)"
+            />
           </div>
-          <div class="edit-block">
-            <div class="edit-block-title"><span class="title-dot"></span>排查步骤<span class="required-mark">*</span></div>
-            <div class="edit-steps-container">
-              <div v-for="(step, i) in editForm.steps" :key="i" class="edit-step-row">
-                <span class="edit-step-badge">{{ i + 1 }}</span>
-                <textarea
-                  v-model="editForm.steps[i]"
-                  class="edit-step-textarea"
-                  :placeholder="`请输入第 ${i + 1} 步排查内容`"
-                ></textarea>
-                <button v-if="editForm.steps.length > 1" class="edit-step-delete" @click="removeEditStep(i)">×</button>
-              </div>
-              <button class="edit-add-step-btn" @click="addEditStep">+ 添加步骤</button>
-            </div>
-          </div>
-          <div class="edit-block">
-            <div class="edit-block-title"><span class="title-dot"></span>图片附件</div>
-            <div class="edit-upload-list">
-              <div v-for="(photo, i) in editForm.photoList" :key="i" class="edit-preview-item">
-                <img :src="photo.preview" alt="照片" class="edit-preview-img" />
-                <span class="edit-photo-label">照片{{ i + 1 }}</span>
-                <div class="edit-upload-mask" v-if="photo.uploading">上传中...</div>
-                <button class="edit-preview-delete" @click="removeEditPhoto(i)">×</button>
-              </div>
-              <label class="edit-upload-trigger" v-if="editForm.photoList.length < 9">
-                <span>📷</span>
-                <span class="edit-upload-text">添加照片</span>
-                <input type="file" accept="image/*" multiple @change="chooseEditPhoto($event)" hidden />
-              </label>
-            </div>
-          </div>
-          <div class="edit-block">
-            <div class="edit-block-title"><span class="title-dot"></span>文档附件</div>
-            <div class="edit-file-list" v-if="editForm.fileList.length > 0">
-              <div v-for="(file, i) in editForm.fileList" :key="i" class="edit-file-item">
-                <span class="edit-file-icon">{{ file.uploading ? '⏳' : '📄' }}</span>
-                <div class="edit-file-info">
-                  <span class="edit-file-name">{{ file.name }}</span>
-                  <span class="edit-file-size">{{ file.uploading ? '上传中...' : file.sizeText }}</span>
-                </div>
-                <button class="edit-file-delete" @click="removeEditFile(i)">×</button>
-              </div>
-            </div>
-            <label class="edit-upload-trigger edit-upload-trigger-file">
-              <span>📎</span>
-              <span class="edit-upload-text">添加文件</span>
-              <input type="file" multiple @change="chooseEditFile($event)" hidden />
-            </label>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button class="btn-cancel" @click="closeEdit">取消</button>
-          <button class="btn-submit" @click="saveEdit">保存修改</button>
+          <el-button class="edit-add-step-btn" text :icon="Plus" @click="addEditStep">添加步骤</el-button>
         </div>
       </div>
-    </div>
+      <div class="edit-block">
+        <div class="edit-block-title"><span class="title-dot"></span>图片附件</div>
+        <div class="edit-upload-list">
+          <div v-for="(photo, i) in editForm.photoList" :key="i" class="edit-preview-item">
+            <img :src="photo.preview" alt="照片" class="edit-preview-img" />
+            <span class="edit-photo-label">照片{{ i + 1 }}</span>
+            <div class="edit-upload-mask" v-if="photo.uploading">上传中...</div>
+            <button class="edit-preview-delete" @click="removeEditPhoto(i)">×</button>
+          </div>
+          <label class="edit-upload-trigger" v-if="editForm.photoList.length < 9">
+            <el-icon><Picture /></el-icon>
+            <span class="edit-upload-text">添加照片</span>
+            <input type="file" accept="image/*" multiple @change="chooseEditPhoto($event)" hidden />
+          </label>
+        </div>
+      </div>
+      <div class="edit-block">
+        <div class="edit-block-title"><span class="title-dot"></span>文档附件</div>
+        <div class="edit-file-list" v-if="editForm.fileList.length > 0">
+          <div v-for="(file, i) in editForm.fileList" :key="i" class="edit-file-item">
+            <span class="edit-file-icon">
+              <el-icon v-if="file.uploading"><Loading /></el-icon>
+              <el-icon v-else><Document /></el-icon>
+            </span>
+            <div class="edit-file-info">
+              <span class="edit-file-name">{{ file.name }}</span>
+              <span class="edit-file-size">{{ file.uploading ? '上传中...' : file.sizeText }}</span>
+            </div>
+            <el-button :icon="Close" circle text @click="removeEditFile(i)" />
+          </div>
+        </div>
+        <label class="edit-upload-trigger edit-upload-trigger-file">
+          <el-icon><Paperclip /></el-icon>
+          <span class="edit-upload-text">添加文件</span>
+          <input type="file" multiple @change="chooseEditFile($event)" hidden />
+        </label>
+      </div>
+      <template #footer>
+        <el-button @click="closeEdit">取消</el-button>
+        <el-button type="primary" @click="saveEdit">保存修改</el-button>
+      </template>
+    </el-dialog>
 
     <!-- 删除确认弹窗 -->
-    <div class="modal-overlay" v-if="showDeleteConfirm" @click.self="showDeleteConfirm = false">
-      <div class="modal-dialog confirm-modal">
+    <el-dialog
+      v-model="showDeleteConfirm"
+      width="400px"
+      :close-on-click-modal="false"
+      append-to-body
+      class="confirm-dialog"
+    >
+      <div class="confirm-content">
+        <el-icon class="confirm-icon"><WarningFilled /></el-icon>
         <p class="confirm-msg">确定要删除该排查记录吗？删除后不可恢复。</p>
-        <div class="modal-footer">
-          <button class="btn-cancel" @click="showDeleteConfirm = false">取消</button>
-          <button class="btn-delete" @click="confirmDelete">确认删除</button>
-        </div>
       </div>
-    </div>
-
-    <!-- 提示弹框 -->
-    <transition name="fade">
-      <div v-if="alertBox.show" class="alert-overlay" @click.self="closeAlert">
-        <div class="alert-dialog">
-          <p class="alert-msg">{{ alertBox.msg }}</p>
-          <button class="alert-btn" @click="closeAlert">确定</button>
-        </div>
-      </div>
-    </transition>
+      <template #footer>
+        <el-button @click="showDeleteConfirm = false">取消</el-button>
+        <el-button type="danger" @click="confirmDelete">确认删除</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -376,16 +429,21 @@ import { uploadFile } from '@/utils/uploadQueue'
 import { parseFlow } from '@/utils/flowSchema'
 import FlowRunner from './flow/FlowRunner.vue'
 import { ElMessage } from 'element-plus'
+import { markRaw } from 'vue'
+import { Search, Plus, Close, Picture, Document, Paperclip, Loading, WarningFilled } from '@element-plus/icons-vue'
 
 export default {
   name: 'RetrievalPage',
   components: { FlowRunner },
   data() {
     return {
+      // 图标组件引用（markRaw 避免组件被响应式化）
+      Search: markRaw(Search), Plus: markRaw(Plus), Close: markRaw(Close),
+      Picture: markRaw(Picture), Document: markRaw(Document), Paperclip: markRaw(Paperclip),
+      Loading: markRaw(Loading), WarningFilled: markRaw(WarningFilled),
       shipList: [],
       selectedShipId: '',
       selectedShipName: '',
-      showShipDropdown: false,
       keywords: [],
       showKeywordModal: false,
       tempKeywords: [],
@@ -419,8 +477,7 @@ export default {
       privilege: 1,
       showDeleteConfirm: false,
       deleteIndex: -1,
-      editDeletedFiles: [],
-      alertBox: { show: false, msg: '' }
+      editDeletedFiles: []
     }
   },
   created() {
@@ -428,14 +485,6 @@ export default {
     this.fetchShips()
   },
   methods: {
-    showAlert(msg) {
-      this.alertBox.msg = msg
-      this.alertBox.show = true
-    },
-    closeAlert() {
-      this.alertBox.show = false
-    },
-
     // ====== 船型 ======
     fetchShips() {
       request.get('/ships').then(res => {
@@ -446,19 +495,17 @@ export default {
           }))
         }
       }).catch(() => {
-        ElMessage({
-          message: '获取船型列表失败！',
-          type: 'error',
-        })
+        ElMessage.error('获取船型列表失败！')
       })
     },
-    toggleShipDropdown() {
-      this.showShipDropdown = !this.showShipDropdown
-    },
-    selectShip(id, name) {
-      this.selectedShipId = id
-      this.selectedShipName = name
-      this.showShipDropdown = false
+    /** el-select change：根据 id 同步船型名（保留 selectedShipName 用于查询/提交） */
+    onShipChange(val) {
+      if (!val) {
+        this.selectedShipName = ''
+        return
+      }
+      const item = this.shipList.find(s => s.shipId === val)
+      this.selectedShipName = item ? item.name : ''
     },
 
     // ====== 关键词 ======
@@ -569,25 +616,11 @@ export default {
       return `${y}-${m}-${day} ${h}:${min}`
     },
 
-    // ====== 分页 ======
-    changePage(page) {
-      if (page < 1 || page > this.totalPages) return
-      this.currentPage = page
+    // ====== 分页（el-pagination） ======
+    onPageChange() {
       this.fetchData()
     },
-    prevPage() {
-      if (this.currentPage > 1) {
-        this.currentPage--
-        this.fetchData()
-      }
-    },
-    nextPage() {
-      if (this.currentPage < this.totalPages) {
-        this.currentPage++
-        this.fetchData()
-      }
-    },
-    changePageSize(size) {
+    onSizeChange(size) {
       this.pageSize = size
       this.currentPage = 1
       this.fetchData()
@@ -937,73 +970,9 @@ export default {
   margin-bottom: 6px;
 }
 
-/* 船型选择器 */
-.ship-selector {
-  position: relative;
-  height: 38px;
-  border: 1px solid #d0d5dd;
-  border-radius: 8px;
-  background: #fafbfc;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  padding: 0 14px;
-}
-
-.selector-text {
-  font-size: 14px;
-  color: #999;
-  flex: 1;
-}
-
-.selector-text.selected {
-  color: #333;
-}
-
-.selector-arrow {
-  font-size: 12px;
-  color: #999;
-  transition: transform 0.2s;
-}
-
-.selector-arrow.up {
-  transform: rotate(180deg);
-}
-
-.ship-dropdown {
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
-  right: 0;
-  background: #fff;
-  border: 1px solid #d0d5dd;
-  border-radius: 8px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-  z-index: 100;
-  max-height: 240px;
-  overflow-y: auto;
-}
-
-.ship-option {
-  padding: 10px 14px;
-  font-size: 14px;
-  color: #333;
-  cursor: pointer;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.ship-option:last-child {
-  border-bottom: none;
-}
-
-.ship-option:hover {
-  background: #f0f7ff;
-}
-
-.ship-option.active {
-  color: #1E90FF;
-  background: #e8f4ff;
-  font-weight: 500;
+/* 船型选择器（el-select） */
+.ship-select {
+  width: 100%;
 }
 
 /* 关键词 */
@@ -1059,30 +1028,13 @@ export default {
 }
 
 .keyword-add-icon {
-  font-size: 18px;
-  color: #1E90FF;
-  font-weight: 300;
+  font-size: 16px;
+  color: var(--oc-primary, #3584e4);
 }
 
-/* 搜索按钮 */
+/* 搜索按钮（el-button） */
 .search-btn-wrap {
   flex-shrink: 0;
-}
-
-.btn-search {
-  padding: 8px 32px;
-  font-size: 14px;
-  color: #fff;
-  background: linear-gradient(135deg, #3584e4, #1a5fb4);
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  height: 38px;
-  transition: all 0.2s;
-}
-
-.btn-search:hover {
-  background: linear-gradient(135deg, #1a5fb4, #14478a);
 }
 
 /* 结果区域 */
@@ -1422,11 +1374,18 @@ export default {
   font-weight: 600;
 }
 
+.edit-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--oc-title, #1a3a6e);
+}
+
 .detail-date,
 .edit-subtitle {
   margin: 4px 0 0;
   font-size: 12px;
-  opacity: 0.85;
+  color: var(--oc-text-light, #8a94a6);
 }
 
 .modal-close {
@@ -1528,50 +1487,100 @@ export default {
   background: #f0f7ff;
 }
 
-/* 详情弹窗 */
-.detail-tabs {
+/* ====== 详情弹窗（现代卡片式） ====== */
+.detail-header {
   display: flex;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 20px 48px 20px 24px;
+  background: #fff;
+  border-bottom: 1px solid #eef1f6;
+  flex-shrink: 0;
+}
+
+.detail-header-main {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.detail-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1a3a6e;
+  line-height: 1.4;
+}
+
+.detail-date {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #8a94a6;
+  background: #f5f7fa;
+  padding: 4px 10px;
+  border-radius: 20px;
+  width: fit-content;
+}
+
+.detail-date-icon {
+  width: 13px;
+  height: 13px;
+}
+
+.detail-body {
+  padding: 24px;
+  background: #f5f7fa;
+}
+
+.detail-tabs {
+  display: inline-flex;
   gap: 4px;
   margin-bottom: 20px;
-  border-bottom: 1px solid #eee;
+  padding: 4px;
+  background: #e8ecf0;
+  border-radius: 10px;
 }
 
 .detail-tab {
-  padding: 8px 22px;
-  font-size: 14px;
-  color: #666;
-  background: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  font-size: 13px;
+  color: #6b7a99;
+  background: transparent;
   border: none;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
+  border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s;
-}
-
-.detail-tab:hover {
-  color: #1E90FF;
-}
-
-.detail-tab.active {
-  color: #1E90FF;
-  border-bottom-color: #1E90FF;
   font-weight: 500;
 }
 
-.flow-mode-wrap {
-  min-height: 240px;
+.tab-icon {
+  width: 14px;
+  height: 14px;
 }
 
-.flow-state-box {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  padding: 40px 0;
+.detail-tab:hover {
+  color: #3584e4;
+}
+
+.detail-tab.active {
+  color: #1a5fb4;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(26, 63, 110, 0.08);
 }
 
 .detail-block {
-  margin-bottom: 24px;
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 16px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
+  border: 1px solid #eef1f6;
 }
 
 .detail-block:last-child {
@@ -1581,37 +1590,65 @@ export default {
 .detail-block-title {
   display: flex;
   align-items: center;
-  margin-bottom: 12px;
+  gap: 8px;
+  margin-bottom: 14px;
   font-size: 15px;
-  font-weight: 500;
-  color: #333;
+  font-weight: 600;
+  color: #1a3a6e;
 }
 
-.title-dot {
-  width: 4px;
-  height: 16px;
-  background: #1E90FF;
-  border-radius: 2px;
-  margin-right: 10px;
-  flex-shrink: 0;
+.title-icon {
+  width: 18px;
+  height: 18px;
+  color: #3584e4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.title-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.detail-count {
+  margin-left: auto;
+  font-size: 12px;
+  color: #8a94a6;
+  font-weight: 400;
+  background: #f5f7fa;
+  padding: 2px 8px;
+  border-radius: 12px;
 }
 
 .detail-text {
   font-size: 14px;
-  color: #555;
-  line-height: 1.6;
+  color: #46587a;
+  line-height: 1.8;
   margin: 0;
-  padding-left: 14px;
 }
 
 .steps-list {
-  padding-left: 14px;
+  position: relative;
+  padding-left: 18px;
+}
+
+.steps-list::before {
+  content: '';
+  position: absolute;
+  left: 11px;
+  top: 8px;
+  bottom: 8px;
+  width: 2px;
+  background: linear-gradient(180deg, #3584e4, rgba(53, 132, 228, 0.15));
+  border-radius: 1px;
 }
 
 .step-item {
   display: flex;
   align-items: flex-start;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
+  position: relative;
 }
 
 .step-item:last-child {
@@ -1622,85 +1659,197 @@ export default {
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #1E90FF, #1565c0);
-  color: #fff;
+  background: #fff;
+  color: #3584e4;
+  border: 2px solid #3584e4;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  margin-right: 10px;
-  margin-top: 2px;
+  margin-right: 14px;
+  margin-left: -18px;
+  position: relative;
+  z-index: 1;
 }
 
 .step-text {
   font-size: 14px;
-  color: #555;
-  line-height: 1.5;
+  color: #46587a;
+  line-height: 1.7;
   flex: 1;
+  padding-top: 2px;
 }
 
 .detail-photo-list {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
   gap: 12px;
-  padding-left: 14px;
 }
 
 .detail-photo-item {
-  width: 120px;
-  height: 120px;
-  border-radius: 8px;
+  aspect-ratio: 1;
+  border-radius: 10px;
   overflow: hidden;
   position: relative;
-  display: block;
-  text-decoration: none;
+  cursor: zoom-in;
+  background: #f5f7fa;
+  border: 1px solid #eef1f6;
 }
 
 .detail-photo-img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: transform 0.3s;
+}
+
+.detail-photo-item:hover .detail-photo-img {
+  transform: scale(1.05);
+}
+
+.photo-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(26, 58, 110, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.25s;
+}
+
+.photo-overlay svg {
+  width: 22px;
+  height: 22px;
+  color: #fff;
+}
+
+.detail-photo-item:hover .photo-overlay {
+  opacity: 1;
 }
 
 .detail-photo-label {
   position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: rgba(0, 0, 0, 0.5);
-  color: #fff;
+  bottom: 8px;
+  left: 8px;
+  right: 8px;
+  background: rgba(255, 255, 255, 0.95);
+  color: #1a3a6e;
   font-size: 11px;
+  font-weight: 500;
   text-align: center;
-  padding: 2px 0;
+  padding: 3px 0;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .attach-list {
   display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  padding-left: 14px;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .attach-item {
   display: flex;
   align-items: center;
-  padding: 8px 14px;
-  border-radius: 8px;
-  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  gap: 12px;
   text-decoration: none;
-  font-size: 13px;
+  font-size: 14px;
+  background: #f8fafc;
+  border: 1px solid #eef1f6;
+  transition: all 0.2s;
 }
 
-.doc-item {
-  background: #fff7e6;
-  border: 1px solid #ffd591;
-  color: #333;
+.attach-item:hover {
+  background: #f0f5ff;
+  border-color: #c5d9f7;
 }
 
 .attach-icon {
-  font-size: 16px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  border-radius: 8px;
+  color: #3584e4;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.attach-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.attach-name {
+  flex: 1;
+  color: #1a3a6e;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attach-action {
+  font-size: 12px;
+  color: #3584e4;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: #fff;
+  border: 1px solid #d6e4f7;
+}
+
+.attach-item:hover .attach-action {
+  background: #3584e4;
+  color: #fff;
+  border-color: #3584e4;
+}
+
+.flow-mode-wrap {
+  min-height: 240px;
+}
+
+.flow-state-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 48px 0;
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid #eef1f6;
+}
+
+.flow-state-error .state-text {
+  color: #ed4014;
+}
+
+.error-icon {
+  width: 44px;
+  height: 44px;
+  color: #ed4014;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fdf0ee;
+  border-radius: 50%;
+}
+
+.error-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.flow-runner-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid #eef1f6;
 }
 
 /* 编辑弹窗 */
@@ -1761,8 +1910,9 @@ export default {
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #1E90FF, #1565c0);
-  color: #fff;
+  background: var(--oc-primary-bg, #f0f5ff);
+  color: var(--oc-primary-dark, #1a5fb4);
+  border: 1.5px solid var(--oc-primary, #3584e4);
   font-size: 12px;
   font-weight: 600;
   display: flex;
@@ -2074,5 +2224,33 @@ export default {
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+</style>
+
+<!-- 全局样式：弹窗固定高度 + 内容区滚动（append-to-body 导致 scoped 无法穿透） -->
+<style>
+/* 详情弹窗 */
+.detail-dialog {
+  height: 600px !important;
+  display: flex;
+  flex-direction: column;
+}
+.detail-dialog .el-dialog__body {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+/* 编辑弹窗 */
+.edit-dialog {
+  height: 600px !important;
+  display: flex;
+  flex-direction: column;
+}
+.edit-dialog .el-dialog__body {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  padding: 20px 24px;
 }
 </style>
