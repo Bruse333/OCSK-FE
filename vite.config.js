@@ -16,6 +16,7 @@ export default defineConfig({
       '/api': {
         target: 'https://oceanskill.top',
         changeOrigin: true,
+        //rewrite: (path) => path.replace(/^\/api/, '')
       }
     }
   }

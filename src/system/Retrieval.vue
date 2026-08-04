@@ -190,49 +190,79 @@
           <button class="modal-close" @click="closeDetail">×</button>
         </div>
         <div class="modal-body">
-          <div class="detail-block">
-            <div class="detail-block-title"><span class="title-dot"></span>故障现象</div>
-            <p class="detail-text">{{ currentDetail.phenomenon }}</p>
+          <!-- 图文/流程模式切换 Tab（仅该记录绑定了流程时显示） -->
+          <div class="detail-tabs" v-if="currentDetail.flowUrl">
+            <button
+              class="detail-tab"
+              :class="{ active: detailTab === 'text' }"
+              @click="detailTab = 'text'"
+            >图文模式</button>
+            <button
+              class="detail-tab"
+              :class="{ active: detailTab === 'flow' }"
+              @click="switchToFlowMode"
+            >流程模式</button>
           </div>
-          <div class="detail-block">
-            <div class="detail-block-title"><span class="title-dot"></span>排查步骤</div>
-            <div class="steps-list">
-              <div v-for="(step, i) in currentDetail.shootingSteps" :key="i" class="step-item">
-                <span class="step-badge">{{ i + 1 }}</span>
-                <span class="step-text">{{ step }}</span>
+
+          <!-- 图文模式 -->
+          <template v-if="!currentDetail.flowUrl || detailTab === 'text'">
+            <div class="detail-block">
+              <div class="detail-block-title"><span class="title-dot"></span>故障现象</div>
+              <p class="detail-text">{{ currentDetail.phenomenon }}</p>
+            </div>
+            <div class="detail-block">
+              <div class="detail-block-title"><span class="title-dot"></span>排查步骤</div>
+              <div class="steps-list">
+                <div v-for="(step, i) in currentDetail.shootingSteps" :key="i" class="step-item">
+                  <span class="step-badge">{{ i + 1 }}</span>
+                  <span class="step-text">{{ step }}</span>
+                </div>
               </div>
             </div>
-          </div>
-          <div class="detail-block" v-if="currentDetail.photoList && currentDetail.photoList.length > 0">
-            <div class="detail-block-title"><span class="title-dot"></span>图片附件</div>
-            <div class="detail-photo-list">
-              <a
-                v-for="(url, i) in currentDetail.photoList"
-                :key="i"
-                :href="url"
-                target="_blank"
-                class="detail-photo-item"
-              >
-                <img :src="url" alt="照片" class="detail-photo-img" />
-                <span class="detail-photo-label">照片{{ i + 1 }}</span>
-              </a>
+            <div class="detail-block" v-if="currentDetail.photoList && currentDetail.photoList.length > 0">
+              <div class="detail-block-title"><span class="title-dot"></span>图片附件</div>
+              <div class="detail-photo-list">
+                <a
+                  v-for="(url, i) in currentDetail.photoList"
+                  :key="i"
+                  :href="url"
+                  target="_blank"
+                  class="detail-photo-item"
+                >
+                  <img :src="url" alt="照片" class="detail-photo-img" />
+                  <span class="detail-photo-label">照片{{ i + 1 }}</span>
+                </a>
+              </div>
             </div>
-          </div>
-          <div class="detail-block" v-if="currentDetail.docList && currentDetail.docList.length > 0">
-            <div class="detail-block-title"><span class="title-dot"></span>文档附件</div>
-            <div class="attach-list">
-              <a
-                v-for="(url, i) in currentDetail.docList"
-                :key="i"
-                :href="url"
-                referrerpolicy="origin"
-                target="_blank"
-                class="attach-item doc-item"
-              >
-                <span class="attach-icon">📄</span>
-                <span class="attach-name">文件 {{ i + 1 }}</span>
-              </a>
+            <div class="detail-block" v-if="currentDetail.docList && currentDetail.docList.length > 0">
+              <div class="detail-block-title"><span class="title-dot"></span>文档附件</div>
+              <div class="attach-list">
+                <a
+                  v-for="(url, i) in currentDetail.docList"
+                  :key="i"
+                  :href="url"
+                  referrerpolicy="origin"
+                  target="_blank"
+                  class="attach-item doc-item"
+                >
+                  <span class="attach-icon">📄</span>
+                  <span class="attach-name">文件 {{ i + 1 }}</span>
+                </a>
+              </div>
             </div>
+          </template>
+
+          <!-- 流程模式：加载 flowUrl 并用 FlowRunner 播放 -->
+          <div v-else class="flow-mode-wrap">
+            <div v-if="flowLoading" class="flow-state-box">
+              <div class="spinner"></div>
+              <p class="state-text">正在加载流程...</p>
+            </div>
+            <div v-else-if="flowError" class="flow-state-box">
+              <p class="state-text">{{ flowError }}</p>
+              <button class="btn-cancel" @click="loadDetailFlow">重试</button>
+            </div>
+            <FlowRunner v-else-if="detailFlow" :flow="detailFlow" />
           </div>
         </div>
       </div>
@@ -343,10 +373,13 @@ import request from '@/utils/request'
 import { getUsername, getPrivilege } from '@/utils/token'
 import { deleteFiles } from '@/utils/file'
 import { uploadFile } from '@/utils/uploadQueue'
+import { parseFlow } from '@/utils/flowSchema'
+import FlowRunner from './flow/FlowRunner.vue'
 import { ElMessage } from 'element-plus'
 
 export default {
   name: 'RetrievalPage',
+  components: { FlowRunner },
   data() {
     return {
       shipList: [],
@@ -367,6 +400,11 @@ export default {
       hasSearched: false,
       showDetailModal: false,
       currentDetail: null,
+      // 详情弹窗模式：text 图文 / flow 流程（仅 flowUrl 非空时可切换）
+      detailTab: 'text',
+      flowLoading: false,
+      flowError: '',
+      detailFlow: null,
       showEditModal: false,
       editForm: {
         id: '',
@@ -488,6 +526,8 @@ export default {
         rows.forEach(row => {
           row.photoList = Array.isArray(row.photo) ? row.photo : []
           row.docList = Array.isArray(row.doc) ? row.doc : []
+          // 后端检索时同步返回的流程文件地址，非空时详情弹窗支持"流程模式"
+          row.flowUrl = row.flowUrl || ''
           row.shootingPreview = this.getShootingPreview(row.shooting)
           row.createTimeStr = this.formatDate(row.createTime)
         })
@@ -564,11 +604,51 @@ export default {
         })
       }
       this.currentDetail = { ...item, shootingSteps: steps }
+      // 每次打开默认图文模式，并重置流程状态（流程按需懒加载）
+      this.detailTab = 'text'
+      this.detailFlow = null
+      this.flowLoading = false
+      this.flowError = ''
       this.showDetailModal = true
     },
     closeDetail() {
       this.showDetailModal = false
       this.currentDetail = null
+      this.detailTab = 'text'
+      this.detailFlow = null
+      this.flowLoading = false
+      this.flowError = ''
+    },
+    /** 切换到流程模式：首次进入时懒加载流程文件 */
+    switchToFlowMode() {
+      this.detailTab = 'flow'
+      if (!this.detailFlow && !this.flowLoading && !this.flowError) {
+        this.loadDetailFlow()
+      }
+    },
+    /** 下载并解析当前记录的流程文件 */
+    async loadDetailFlow() {
+      if (!this.currentDetail || !this.currentDetail.flowUrl) return
+      this.flowLoading = true
+      this.flowError = ''
+      try {
+        const res = await fetch(this.currentDetail.flowUrl, { cache: 'no-store' })
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        const text = await res.text()
+        const { flow, errors } = parseFlow(text)
+        if (!flow) {
+          this.flowError = errors[0] || '流程文件解析失败'
+          return
+        }
+        this.detailFlow = flow
+        if (errors.length > 0) {
+          ElMessage({ message: `流程已加载，${errors.length} 处自动修正`, type: 'warning' })
+        }
+      } catch (e) {
+        this.flowError = '流程文件加载失败，请检查网络后重试'
+      } finally {
+        this.flowLoading = false
+      }
     },
 
     // ====== 编辑 ======
@@ -799,11 +879,12 @@ export default {
             message: '删除成功！',
             type: 'success',
           })
-          // 删除该记录关联的所有源文件
+          // 删除该记录关联的所有源文件（图片、文档、绑定的流程 JSON）
           const urls = [
             ...(item.photoList || []),
             ...(item.docList || [])
           ]
+          if (item.flowUrl) urls.push(item.flowUrl)
           if (urls.length > 0) deleteFiles(urls)
           this.fetchData()
         } else {
@@ -1448,6 +1529,47 @@ export default {
 }
 
 /* 详情弹窗 */
+.detail-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #eee;
+}
+
+.detail-tab {
+  padding: 8px 22px;
+  font-size: 14px;
+  color: #666;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.detail-tab:hover {
+  color: #1E90FF;
+}
+
+.detail-tab.active {
+  color: #1E90FF;
+  border-bottom-color: #1E90FF;
+  font-weight: 500;
+}
+
+.flow-mode-wrap {
+  min-height: 240px;
+}
+
+.flow-state-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 40px 0;
+}
+
 .detail-block {
   margin-bottom: 24px;
 }

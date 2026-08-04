@@ -14,6 +14,7 @@ import MinePageH5 from '../system/MineH5.vue'
 import BatchUploadPage from '../system/BatchUpload.vue'
 import DataStatisticsPage from '../system/DataStatistics.vue'
 import UserManagementPage from '../system/UserManagement.vue'
+import FlowBuilderPage from '../system/FlowBuilder.vue'
 import { getToken, getPrivilege } from '@/utils/token'
 
 function isMobile() {
@@ -74,6 +75,11 @@ const router = createRouter({
           path: 'users',
           name: 'UserManagementPage',
           component: UserManagementPage
+        },
+        {
+          path: 'flow-builder',
+          name: 'FlowBuilderPage',
+          component: FlowBuilderPage
         }
       ]
     },
@@ -85,6 +91,8 @@ router.beforeEach((to, from, next) => {
   if (to.path !== '/login' && !getToken()) {
     next('/login')
   } else if ((to.path === '/system/statistics' || to.path === '/system/users' || to.path === '/system/batch-upload') && getPrivilege() !== 3) {
+    next('/system/retrieval')
+  } else if (to.path === '/system/flow-builder' && getPrivilege() < 2) {
     next('/system/retrieval')
   } else {
     next()
