@@ -1,5 +1,5 @@
 <template>
-  <div class="h5-system-wrapper">
+  <div class="h5-system-wrapper" :class="'theme-' + theme">
     <!-- 顶部栏 -->
     <header class="h5-top-bar">
       <button class="h5-back-btn" @click="backToHome">&#8249;</button>
@@ -30,12 +30,14 @@
 
 <script>
 import { getUsername, removeToken, removeUsername, removePrivilege } from '@/utils/token'
+import { getTimeTheme } from '@/utils/theme'
 
 export default {
   name: 'SystemLayoutH5',
   data() {
     return {
       username: '',
+      theme: 'night',
       tabItems: [
         {
           label: '检索',
@@ -66,6 +68,7 @@ export default {
   },
   created() {
     this.username = getUsername() || ''
+    this.theme = getTimeTheme()
   },
   methods: {
     navigateTo(path) {
@@ -92,39 +95,43 @@ export default {
   flex-direction: column;
   height: 100vh;
   overflow: hidden;
-  background: var(--oc-gray-50);
+  background: var(--oc-content-bg);
+  transition: background 0.2s ease;
 }
 
-/* 顶部栏：深蓝渐变 */
+/* ===== 顶部栏：深蓝渐变（跟随主题，与 PC 顶栏策略一致） ===== */
 .h5-top-bar {
   height: 52px;
-  background: linear-gradient(135deg, var(--oc-navy-800), var(--oc-blue-700));
+  background: var(--oc-topbar-bg);
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 12px;
   flex-shrink: 0;
-  color: #fff;
+  color: var(--oc-topbar-text);
+  border-bottom: 1px solid var(--oc-topbar-border);
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
 }
 
 .h5-back-btn {
   width: 36px;
   height: 36px;
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--oc-topbar-capsule-hover);
   border: none;
   border-radius: 50%;
-  color: #fff;
+  color: var(--oc-topbar-text);
   font-size: 22px;
   line-height: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition: background 0.15s ease, color 0.2s ease;
 }
 
 .h5-back-btn:active {
-  background: rgba(255, 255, 255, 0.22);
+  background: var(--oc-topbar-capsule-hover);
+  opacity: 0.75;
 }
 
 .h5-top-title {
@@ -133,21 +140,22 @@ export default {
   font-weight: 600;
   flex: 1;
   text-align: center;
+  color: var(--oc-topbar-text);
 }
 
 .h5-top-logout {
   padding: 5px 10px;
   font-size: 13px;
-  color: #fff;
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: var(--oc-topbar-text);
+  background: var(--oc-topbar-capsule-hover);
+  border: 1px solid var(--oc-topbar-border);
   border-radius: 6px;
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition: background 0.15s ease, border-color 0.2s ease, color 0.2s ease;
 }
 
 .h5-top-logout:active {
-  background: rgba(255, 255, 255, 0.22);
+  opacity: 0.75;
 }
 
 /* 内容区 */

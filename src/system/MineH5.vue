@@ -1,7 +1,28 @@
 <template>
-  <div class="h5-mine-page">
-    <!-- 资料卡：深蓝渐变横幅 -->
+  <div class="h5-mine-page" :class="'theme-' + theme">
+    <!-- 资料卡：深蓝渐变横幅（跟随主题） -->
     <div class="h5-profile-banner">
+      <!-- 横幅装饰：星星（夜晚/傍晚） -->
+      <div class="h5-banner-decor" aria-hidden="true">
+        <span class="h5-b-star s1"></span>
+        <span class="h5-b-star s2"></span>
+        <span class="h5-b-star s3"></span>
+        <span class="h5-b-star s4"></span>
+        <span class="h5-b-star s5"></span>
+        <span class="h5-b-star s6"></span>
+      </div>
+      <!-- 白云（清晨/白日） -->
+      <svg class="h5-b-cloud c1" viewBox="0 0 80 36" fill="#fff" aria-hidden="true">
+        <ellipse cx="22" cy="25" rx="16" ry="9"/><ellipse cx="42" cy="17" rx="18" ry="12"/><ellipse cx="62" cy="25" rx="14" ry="8"/>
+      </svg>
+      <svg class="h5-b-cloud c2" viewBox="0 0 80 36" fill="#fff" aria-hidden="true">
+        <ellipse cx="22" cy="25" rx="16" ry="9"/><ellipse cx="42" cy="17" rx="18" ry="12"/><ellipse cx="62" cy="25" rx="14" ry="8"/>
+      </svg>
+      <!-- 小落日 + 剪影飞鸟（傍晚） -->
+      <div class="h5-b-dusk-sun" aria-hidden="true"></div>
+      <svg class="h5-b-bird" viewBox="0 0 32 12" fill="none" stroke-linecap="round" aria-hidden="true">
+        <path d="M2 10 Q9 2 16 10 Q23 2 30 10"/>
+      </svg>
       <div class="h5-profile-info">
         <div class="h5-avatar">{{ username.charAt(0).toUpperCase() }}</div>
         <div class="h5-user-meta">
@@ -60,6 +81,7 @@
 <script>
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getUsername, removeToken, removeUsername, removePrivilege, getPrivilege } from '@/utils/token'
+import { getTimeTheme } from '@/utils/theme'
 
 const PRIVILEGE_MAP = {
   1: { label: '仅检索', cls: 'normal' },
@@ -75,6 +97,7 @@ export default {
       privilege: 1,
       privilegeLabel: '',
       privilegeClass: '',
+      theme: 'night',
       // 权限说明卡片定义（纯展示数据）
       privDefs: [
         {
@@ -95,6 +118,7 @@ export default {
   created() {
     this.username = getUsername() || ''
     this.privilege = getPrivilege()
+    this.theme = getTimeTheme()
     const p = PRIVILEGE_MAP[this.privilege] || { label: '未知', cls: 'normal' }
     this.privilegeLabel = p.label
     this.privilegeClass = p.cls
@@ -129,25 +153,141 @@ export default {
   padding-bottom: 12px;
 }
 
-/* ===== 资料卡：深蓝渐变横幅 ===== */
+/* ===== 资料卡：渐变横幅（跟随主题：清晨亮蓝/白日深蓝/傍晚紫橙/夜晚海军蓝） ===== */
 .h5-profile-banner {
   position: relative;
   height: 140px;
   border-radius: var(--oc-radius-lg);
-  background: linear-gradient(135deg, var(--oc-navy-800), var(--oc-blue-700));
+  background: var(--oc-banner-bg);
   overflow: hidden;
   margin-bottom: 12px;
   display: flex;
   align-items: center;
   padding: 0 20px;
+  transition: background 0.2s ease;
 }
 
 .h5-profile-banner::before {
   content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at 82% 18%, rgba(6, 182, 212, 0.22), transparent 55%);
+  background: var(--oc-banner-glow);
   pointer-events: none;
+}
+
+/* --- 横幅星星装饰（仅夜晚/傍晚显示） --- */
+.h5-banner-decor {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  display: none;
+}
+
+.theme-night .h5-banner-decor {
+  display: block;
+}
+
+.theme-dusk .h5-banner-decor {
+  display: block;
+  opacity: 0.6;
+}
+
+.h5-b-star {
+  position: absolute;
+  background: #fff;
+  clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+  opacity: 0.55;
+  animation: h5-star-twinkle ease-in-out infinite;
+}
+
+.h5-b-star.s1 { top: 18%; left: 60%; width: 5px; height: 5px; animation-duration: 2.8s; }
+.h5-b-star.s2 { top: 10%; left: 72%; width: 8px; height: 8px; box-shadow: 0 0 9px 2px rgba(255, 255, 255, 0.4); animation-duration: 3.6s; animation-delay: 0.8s; }
+.h5-b-star.s3 { top: 30%; left: 84%; width: 5px; height: 5px; animation-duration: 2.4s; animation-delay: 1.6s; }
+.h5-b-star.s4 { top: 62%; left: 66%; width: 5px; height: 5px; animation-duration: 3.2s; animation-delay: 0.4s; }
+.h5-b-star.s5 { top: 72%; left: 80%; width: 7px; height: 7px; box-shadow: 0 0 9px 2px rgba(255, 255, 255, 0.4); animation-duration: 2.6s; animation-delay: 2s; }
+.h5-b-star.s6 { top: 50%; left: 92%; width: 5px; height: 5px; animation-duration: 3.8s; animation-delay: 1.2s; }
+
+@keyframes h5-star-twinkle {
+  0%, 100% {
+    opacity: 0.2;
+    transform: scale(0.85);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.1);
+  }
+}
+
+/* --- 横幅白云（清晨/白日） --- */
+.h5-b-cloud {
+  position: absolute;
+  display: none;
+  left: -16%;
+  opacity: 0.85;
+  pointer-events: none;
+  animation: h5-b-cloud-drift linear infinite;
+}
+
+.h5-b-cloud.c1 { top: 16%; width: 52px; animation-duration: 30s; }
+.h5-b-cloud.c2 { top: 56%; width: 36px; opacity: 0.6; animation-duration: 40s; animation-delay: -16s; }
+
+@keyframes h5-b-cloud-drift {
+  from { left: -16%; }
+  to { left: 104%; }
+}
+
+/* --- 横幅小落日 + 剪影飞鸟（傍晚） --- */
+.h5-b-dusk-sun {
+  position: absolute;
+  display: none;
+  right: 8%;
+  top: 50%;
+  width: 38px;
+  height: 38px;
+  margin-top: -19px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 38%, #FDBA74, #F97316 72%);
+  box-shadow: 0 0 20px 8px rgba(249, 115, 22, 0.45);
+  pointer-events: none;
+  animation: h5-b-sun-breathe 4.5s ease-in-out infinite;
+}
+
+@keyframes h5-b-sun-breathe {
+  0%, 100% { box-shadow: 0 0 20px 8px rgba(249, 115, 22, 0.45); }
+  50% { box-shadow: 0 0 28px 14px rgba(249, 115, 22, 0.6); }
+}
+
+.h5-b-bird {
+  position: absolute;
+  display: none;
+  top: 22%;
+  left: -8%;
+  width: 18px;
+  stroke: rgba(30, 27, 75, 0.8);
+  stroke-width: 2.2;
+  opacity: 0;
+  pointer-events: none;
+  animation: h5-b-bird-fly 22s linear infinite;
+  animation-delay: 4s;
+}
+
+@keyframes h5-b-bird-fly {
+  0% { left: -8%; opacity: 0; }
+  3% { opacity: 0.85; }
+  42% { opacity: 0.85; }
+  46% { left: 103%; opacity: 0; }
+  100% { left: 103%; opacity: 0; }
+}
+
+/* 主题显隐规则 */
+.theme-morning .h5-b-cloud,
+.theme-day .h5-b-cloud {
+  display: block;
+}
+
+.theme-dusk .h5-b-dusk-sun,
+.theme-dusk .h5-b-bird {
+  display: block;
 }
 
 .h5-profile-info {
@@ -158,6 +298,7 @@ export default {
 }
 
 .h5-avatar {
+  position: relative;
   width: 56px;
   height: 56px;
   border-radius: 50%;
@@ -170,6 +311,28 @@ export default {
   color: var(--oc-blue-700);
   box-shadow: 0 4px 12px rgba(15, 23, 42, 0.2);
   flex-shrink: 0;
+}
+
+/* 头像声呐脉冲环（全主题保留） */
+.h5-avatar::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.55);
+  animation: h5-avatar-pulse 3.2s ease-out infinite;
+  pointer-events: none;
+}
+
+@keyframes h5-avatar-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1.45);
+    opacity: 0;
+  }
 }
 
 .h5-user-meta {
@@ -384,5 +547,16 @@ export default {
 
 .h5-logout-btn:active {
   background: var(--oc-danger-bg);
+}
+
+/* 尊重系统减弱动效偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .h5-b-star,
+  .h5-avatar::after,
+  .h5-b-cloud,
+  .h5-b-dusk-sun,
+  .h5-b-bird {
+    animation: none;
+  }
 }
 </style>
