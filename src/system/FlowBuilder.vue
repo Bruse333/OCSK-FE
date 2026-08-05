@@ -46,9 +46,8 @@
         <el-button :icon="Download" @click="handleExport">导出</el-button>
       </div>
       <span class="toolbar-divider"></span>
-      <!-- 视图与校验组 -->
+      <!-- 视图与校验组（全屏按钮已移入画布右上角浮动，避免窄屏挤压提交按钮） -->
       <div class="toolbar-group">
-        <el-button :icon="FullScreen" @click="toggleFullscreen" :title="canvasFullscreen ? '退出全屏 (Esc)' : '全屏编辑'">{{ canvasFullscreen ? '退出全屏' : '全屏' }}</el-button>
         <el-button :icon="Aim" @click="handleValidate">校验</el-button>
         <el-button :icon="View" @click="handlePreview">预览</el-button>
       </div>
@@ -101,6 +100,14 @@
 
       <!-- 中央画布 -->
       <div class="fb-canvas" @drop="onDrop" @dragover.prevent @dragenter.prevent>
+        <!-- 非全屏时浮动全屏按钮（画布右上角，与全屏退出按钮同款） -->
+        <el-button
+          v-if="!canvasFullscreen"
+          class="fb-enter-fullscreen"
+          :icon="FullScreen"
+          title="全屏编辑"
+          @click="toggleFullscreen"
+        >全屏</el-button>
         <VueFlow
           v-model:nodes="vfNodes"
           v-model:edges="vfEdges"
@@ -1664,6 +1671,16 @@ export default {
   top: 16px;
   right: calc(var(--fb-panel-w) + 28px);
   z-index: 910;
+  border-radius: var(--oc-radius-pill);
+  box-shadow: var(--oc-shadow-lg);
+}
+
+/* 非全屏时的浮动全屏按钮：画布右上角，高于画布蒙层（z-10）保证始终可点 */
+.fb-enter-fullscreen {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 11;
   border-radius: var(--oc-radius-pill);
   box-shadow: var(--oc-shadow-lg);
 }
