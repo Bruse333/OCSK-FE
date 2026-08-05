@@ -1,28 +1,36 @@
 <template>
-  <div class="page-wrapper">
-    <header class="site-header">
-      <h1 class="site-name">技术知识查询</h1>
-    </header>
-    <div class="image-container">
-      <img src="../assets/ocskill_h5.png" alt="Login Background" />
-      <div class="login-panel">
-        <h2 class="login-title">用户登录</h2>
-        <form @submit.prevent="handleLogin">
-          <div class="form-group">
-            <label for="username">用户名</label>
-            <input id="username" v-model="loginForm.username" type="text" placeholder="请输入用户名" required />
-          </div>
-          <div class="form-group">
-            <label for="password">密码</label>
-            <input id="password" v-model="loginForm.password" type="password" placeholder="请输入密码" autocomplete="off" required />
-          </div>
-          <button type="submit" class="btn-login">登录</button>
-          <el-link type="primary" @click="handleGuestLogin">游客登陆</el-link>
-        </form>
+  <div class="login-h5">
+    <!-- 品牌区（顶部 40%） -->
+    <section class="brand-zone">
+      <div class="brand-row">
+        <span class="brand-mark">OC</span>
+        <span class="brand-name">OCSKILL</span>
       </div>
-    </div>
-    <footer class="footer-record">
-      <p>Copyright &copy; 2026 OCSKILL技术知识查询.</p>
+      <h1 class="brand-title">技术知识查询系统</h1>
+      <p class="brand-subtitle">让技能点亮未来 —— 船舶故障排查知识库</p>
+    </section>
+
+    <!-- 表单区（圆角上叠） -->
+    <section class="form-zone">
+      <h2 class="form-title">欢迎登录</h2>
+      <p class="form-subtitle">请使用账号密码登录系统</p>
+
+      <form @submit.prevent="handleLogin()">
+        <div class="form-group">
+          <label for="username">用户名</label>
+          <input id="username" v-model="loginForm.username" type="text" placeholder="请输入用户名" required />
+        </div>
+        <div class="form-group">
+          <label for="password">密码</label>
+          <input id="password" v-model="loginForm.password" type="password" placeholder="请输入密码" autocomplete="off" required />
+        </div>
+        <button type="submit" class="btn-login" :disabled="loading">{{ loading ? '登录中…' : '登录' }}</button>
+        <div class="guest-link" @click="handleGuestLogin">游客登录</div>
+      </form>
+    </section>
+
+    <footer class="page-footer">
+      <p>&copy; 2026 OCSKILL &middot; 技术知识查询系统</p>
       <p>
         <a class="record-gongan" href="http://www.beian.gov.cn/portal/registerSystemInfo?recordcode=44195402000128" target="_blank" rel="noopener noreferrer">
           <img src="../assets/gongan.png" alt="公安备案图标" />
@@ -50,7 +58,8 @@ export default {
       loginForm: {
         username: '',
         password: ''
-      }
+      },
+      loading: false
     }
   },
   methods: {
@@ -59,6 +68,8 @@ export default {
         username = this.loginForm.username
         password = this.loginForm.password
       }
+      if (this.loading) return
+      this.loading = true
       try {
         const res = await request.post('/login', {
           username: username,
@@ -90,6 +101,8 @@ export default {
           type: 'error',
           duration: 1500
         })
+      } finally {
+        this.loading = false
       }
     },
     handleGuestLogin() {
@@ -100,64 +113,89 @@ export default {
 </script>
 
 <style scoped>
-.page-wrapper {
+.login-h5 {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  background: var(--oc-gray-50);
 }
 
-.site-header {
-  background: #f0f5ff;
-  padding: 10px 16px;
-  text-align: center;
-  border-bottom: 1px solid #d0dff0;
-}
-
-.site-name {
-  margin: 0;
-  color: #1a3a6e;
-  font-size: 18px;
-  font-weight: 600;
-  letter-spacing: 2px;
-}
-
-.image-container {
-  flex: 1;
+/* 品牌区：深蓝渐变，约 40% 高度 */
+.brand-zone {
+  min-height: 38vh;
+  background:
+    radial-gradient(circle at 82% 12%, rgba(6, 182, 212, 0.25), transparent 55%),
+    linear-gradient(160deg, var(--oc-navy-950) 0%, var(--oc-navy-800) 55%, #14418C 100%);
+  padding: 48px 24px 56px;
   display: flex;
+  flex-direction: column;
   justify-content: center;
+  flex-shrink: 0;
+}
+
+.brand-row {
+  display: flex;
   align-items: center;
-  overflow: hidden;
-  position: relative;
+  gap: 10px;
+  margin-bottom: 24px;
 }
 
-.image-container img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+.brand-mark {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--oc-blue-500), var(--oc-cyan-500));
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.login-panel {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 10;
-  background: rgba(255, 255, 255, 0.92);
-  border-radius: 12px;
-  padding: 28px 24px;
-  width: 85vw;
-  max-width: 320px;
-  box-shadow: 0 8px 32px rgba(26, 58, 110, 0.25);
-  backdrop-filter: blur(8px);
-}
-
-.login-title {
-  margin: 0 0 22px 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: #1a3a6e;
-  text-align: center;
+.brand-name {
+  color: #fff;
+  font-size: 20px;
+  font-weight: 700;
   letter-spacing: 2px;
+}
+
+.brand-title {
+  margin: 0;
+  color: #fff;
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.brand-subtitle {
+  margin: 10px 0 0;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 13px;
+}
+
+/* 表单区：白色圆角上叠 */
+.form-zone {
+  flex: 1;
+  background: #fff;
+  border-radius: 20px 20px 0 0;
+  margin-top: -20px;
+  padding: 28px 24px 24px;
+  position: relative;
+  z-index: 1;
+}
+
+.form-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--oc-gray-900);
+}
+
+.form-subtitle {
+  margin: 6px 0 24px;
+  font-size: 13px;
+  color: var(--oc-gray-400);
 }
 
 .form-group {
@@ -167,67 +205,83 @@ export default {
 .form-group label {
   display: block;
   margin-bottom: 6px;
-  font-size: 14px;
-  color: #1a3a6e;
+  font-size: 13px;
   font-weight: 500;
+  color: var(--oc-gray-700);
 }
 
 .form-group input {
   width: 100%;
-  padding: 10px 12px;
+  height: 44px;
+  padding: 0 14px;
   font-size: 16px;
-  border: 1px solid #c8daf0;
-  border-radius: 6px;
+  border: 1px solid var(--oc-gray-200);
+  border-radius: 8px;
   outline: none;
-  color: #1a3a6e;
-  background: #f8fbff;
+  color: var(--oc-gray-900);
+  background: var(--oc-gray-100);
   box-sizing: border-box;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
 }
 
 .form-group input:focus {
-  border-color: #3584e4;
-  box-shadow: 0 0 0 2px rgba(53, 132, 228, 0.2);
+  border-color: var(--oc-blue-600);
+  background: #fff;
+  box-shadow: 0 0 0 3px var(--oc-blue-100);
 }
 
 .form-group input::placeholder {
-  color: #a0b8d8;
+  color: var(--oc-gray-400);
 }
 
 .btn-login {
   width: 100%;
-  padding: 12px 0;
-  font-size: 16px;
-  font-weight: 500;
+  height: 44px;
+  margin-top: 8px;
+  font-size: 15px;
+  font-weight: 600;
   color: #fff;
-  background: linear-gradient(135deg, #3584e4, #1a5fb4);
+  background: var(--oc-blue-600);
   border: none;
   border-radius: 8px;
   cursor: pointer;
-  letter-spacing: 2px;
-  margin-top: 8px;
-  box-shadow: 0 2px 8px rgba(26, 95, 180, 0.3);
+  letter-spacing: 4px;
+  transition: background 0.15s ease;
 }
-
 
 .btn-login:active {
-  background: linear-gradient(135deg, #1a5fb4, #14478a);
+  background: var(--oc-blue-700);
 }
 
-.footer-record {
+.btn-login:disabled {
+  background: var(--oc-gray-300);
+  cursor: not-allowed;
+}
+
+.guest-link {
   text-align: center;
-  padding: 8px 8px;
-  background: #f0f5ff;
-  color: #1a5fb4;
-  font-size: 11px;
-  line-height: 1.6;
+  margin-top: 16px;
+  font-size: 14px;
+  color: var(--oc-blue-600);
+  cursor: pointer;
 }
 
-.footer-record p {
+/* 页脚 */
+.page-footer {
+  text-align: center;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+  background: #fff;
+  font-size: 11px;
+  color: var(--oc-gray-400);
+  line-height: 1.8;
+}
+
+.page-footer p {
   margin: 2px 0;
 }
 
-.footer-record a {
-  color: #1a5fb4;
+.page-footer a {
+  color: var(--oc-gray-400);
   text-decoration: none;
   word-break: break-all;
 }
@@ -239,8 +293,8 @@ export default {
 }
 
 .record-gongan img {
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 12px;
   object-fit: contain;
 }
 </style>

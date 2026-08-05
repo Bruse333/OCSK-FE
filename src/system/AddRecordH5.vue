@@ -1,9 +1,9 @@
 <template>
   <div class="h5-add-page">
-    <!-- 船型选择 -->
+    <!-- 1 船型选择 -->
     <div class="h5-form-card">
       <div class="h5-form-title">
-        <span>🚢</span>
+        <span class="h5-section-num">1</span>
         <span>船型选择</span>
         <span class="h5-required">*</span>
       </div>
@@ -13,20 +13,20 @@
       </div>
     </div>
 
-    <!-- 故障现象 -->
+    <!-- 2 故障现象 -->
     <div class="h5-form-card">
       <div class="h5-form-title">
-        <span>📝</span>
+        <span class="h5-section-num">2</span>
         <span>故障现象</span>
         <span class="h5-required">*</span>
       </div>
       <textarea v-model="phenomenon" class="h5-textarea" placeholder="请描述故障现象"></textarea>
     </div>
 
-    <!-- 排查步骤 -->
+    <!-- 3 排查步骤 -->
     <div class="h5-form-card">
       <div class="h5-form-title">
-        <span>📋</span>
+        <span class="h5-section-num">3</span>
         <span>排查步骤</span>
         <span class="h5-required">*</span>
       </div>
@@ -40,12 +40,12 @@
       </div>
     </div>
 
-    <!-- 照片上传 -->
+    <!-- 4 照片上传 -->
     <div class="h5-form-card">
       <div class="h5-form-title">
-        <span>📷</span>
+        <span class="h5-section-num">4</span>
         <span>照片上传</span>
-        <span class="h5-hint">单张 &lt; 2M</span>
+        <span class="h5-hint">最多 9 张，单张 &lt; 2M</span>
       </div>
       <div class="h5-upload-list">
         <div v-for="(photo, i) in photoList" :key="i" class="h5-upload-item">
@@ -60,17 +60,17 @@
       </div>
     </div>
 
-    <!-- 文件上传 -->
+    <!-- 5 文件上传 -->
     <div class="h5-form-card">
       <div class="h5-form-title">
-        <span>📎</span>
+        <span class="h5-section-num">5</span>
         <span>文件上传</span>
-        <span class="h5-hint">单个 &lt; 2M</span>
+        <span class="h5-hint">PDF / DOC / DOCX，单个 &lt; 2M</span>
       </div>
       <div class="h5-file-list" v-if="fileList.length > 0">
         <div v-for="(file, i) in fileList" :key="i" class="h5-file-item">
-          <span>{{ file.uploading ? '⏳' : '📄' }} {{ file.name }}</span>
-          <button class="h5-upload-del" @click="removeFile(i, 'file')">×</button>
+          <span class="h5-file-name">{{ file.uploading ? '⏳' : '📄' }} {{ file.name }}</span>
+          <button class="h5-file-del" @click="removeFile(i, 'file')">×</button>
         </div>
       </div>
       <label class="h5-upload-add h5-upload-add-file">
@@ -79,9 +79,10 @@
       </label>
     </div>
 
-    <!-- 提交按钮 -->
-    <div class="h5-submit-wrap">
-      <button class="h5-submit-btn" :disabled="privilege < 2" @click="handleSubmit">确认提交</button>
+    <!-- 底部固定通栏提交按钮 -->
+    <div class="h5-submit-bar">
+      <p class="h5-submit-tip" v-if="privilege < 2">当前账号无上传权限</p>
+      <button class="h5-submit-btn" :disabled="privilege < 2" @click="handleSubmit">提交记录</button>
     </div>
 
     <!-- 船型选择器（底部弹出） -->
@@ -288,15 +289,17 @@ export default {
 
 <style scoped>
 .h5-add-page {
-  padding-bottom: 12px;
+  padding-bottom: 84px;
 }
 
+/* 表单卡片 */
 .h5-form-card {
-  background: #fff;
-  border-radius: var(--oc-radius, 10px);
+  background: var(--oc-bg-white);
+  border: var(--oc-card-border);
+  border-radius: 14px;
   padding: 14px;
-  margin-bottom: 10px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  margin-bottom: 12px;
+  box-shadow: var(--oc-shadow-sm);
 }
 
 .h5-form-title {
@@ -306,38 +309,56 @@ export default {
   margin-bottom: 12px;
   font-size: 15px;
   font-weight: 600;
-  color: var(--oc-title, #333);
+  color: var(--oc-gray-900);
+}
+
+/* 编号方块：浅蓝底 + 品牌蓝字 */
+.h5-section-num {
+  width: 26px;
+  height: 26px;
+  border-radius: var(--oc-radius);
+  background: var(--oc-blue-50);
+  color: var(--oc-blue-600);
+  font-size: var(--oc-text-sm);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .h5-required {
-  color: var(--oc-danger, #ed4014);
+  margin-left: auto;
+  color: var(--oc-danger);
+  font-weight: 600;
 }
 
 .h5-hint {
   margin-left: auto;
-  font-size: 12px;
-  color: var(--oc-text-light, #999);
-  font-weight: normal;
+  font-size: var(--oc-text-xs);
+  color: var(--oc-gray-400);
+  font-weight: 400;
 }
 
+/* 船型选择 */
 .h5-select-box {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 11px 12px;
-  border: 1px solid var(--oc-border, #e0e4e8);
-  border-radius: 8px;
-  background: var(--oc-bg-soft, #fafbfc);
+  border: 1px solid var(--oc-gray-200);
+  border-radius: var(--oc-radius);
+  background: var(--oc-bg-white);
   font-size: 15px;
-  color: #333;
+  color: var(--oc-gray-900);
 }
 
 .h5-select-box .placeholder {
-  color: var(--oc-text-light, #999);
+  color: var(--oc-gray-400);
 }
 
 .h5-arrow {
-  color: var(--oc-text-light, #999);
+  color: var(--oc-gray-400);
   font-size: 10px;
   transform: rotate(90deg);
 }
@@ -345,17 +366,23 @@ export default {
 .h5-textarea {
   width: 100%;
   min-height: 80px;
-  padding: 10px;
-  border: 1px solid var(--oc-border, #e0e4e8);
-  border-radius: 8px;
-  font-size: 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--oc-gray-200);
+  border-radius: var(--oc-radius);
+  font-size: var(--oc-text-md);
   box-sizing: border-box;
   resize: vertical;
   outline: none;
   font-family: inherit;
-  background: var(--oc-bg-soft, #fafbfc);
+  background: var(--oc-bg-white);
+  color: var(--oc-gray-900);
 }
 
+.h5-textarea:focus {
+  border-color: var(--oc-blue-600);
+}
+
+/* 排查步骤 */
 .h5-steps {
   display: flex;
   flex-direction: column;
@@ -368,13 +395,16 @@ export default {
   gap: 8px;
 }
 
+/* 步骤序号：浅蓝底 + 蓝色描边圆环（规范 9.5） */
 .h5-step-index {
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--oc-primary, #3584e4), var(--oc-primary-dark, #1a5fb4));
-  color: #fff;
-  font-size: 13px;
+  background: var(--oc-primary-bg);
+  color: var(--oc-primary-dark);
+  border: 1.5px solid var(--oc-primary);
+  font-size: var(--oc-text-xs);
+  font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -384,34 +414,51 @@ export default {
 .h5-step-input {
   flex: 1;
   height: 38px;
-  border: 1px solid var(--oc-border, #e0e4e8);
-  border-radius: 8px;
+  border: 1px solid var(--oc-gray-200);
+  border-radius: var(--oc-radius);
   padding: 0 10px;
-  font-size: 14px;
+  font-size: var(--oc-text-md);
   outline: none;
   box-sizing: border-box;
-  background: var(--oc-bg-soft, #fafbfc);
+  background: var(--oc-bg-white);
+  color: var(--oc-gray-900);
+}
+
+.h5-step-input:focus {
+  border-color: var(--oc-blue-600);
 }
 
 .h5-step-del {
   background: none;
   border: none;
   font-size: 18px;
-  color: var(--oc-danger, #ed4014);
+  color: var(--oc-gray-400);
   cursor: pointer;
+  padding: 0 4px;
 }
 
+.h5-step-del:active {
+  color: var(--oc-danger);
+}
+
+/* 添加一步：整宽虚线按钮 */
 .h5-add-step-btn {
   width: 100%;
-  padding: 8px 0;
-  font-size: 13px;
-  color: var(--oc-primary-dark, #1a5fb4);
+  padding: 9px 0;
+  font-size: var(--oc-text-sm);
+  color: var(--oc-blue-600);
   background: none;
-  border: 1px dashed var(--oc-primary-dark, #1a5fb4);
-  border-radius: 6px;
+  border: 1px dashed var(--oc-gray-300);
+  border-radius: var(--oc-radius);
   cursor: pointer;
 }
 
+.h5-add-step-btn:active {
+  background: var(--oc-blue-50);
+  border-color: var(--oc-blue-400);
+}
+
+/* 照片上传 */
 .h5-upload-list {
   display: flex;
   flex-wrap: wrap;
@@ -422,8 +469,9 @@ export default {
   position: relative;
   width: 70px;
   height: 70px;
-  border-radius: 6px;
+  border-radius: var(--oc-radius);
   overflow: hidden;
+  border: 1px solid var(--oc-border-light);
 }
 
 .h5-upload-item img {
@@ -434,11 +482,8 @@ export default {
 
 .h5-upload-mask {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.4);
+  inset: 0;
+  background: rgba(15, 23, 42, 0.4);
   color: #fff;
   display: flex;
   align-items: center;
@@ -452,7 +497,7 @@ export default {
   right: 2px;
   width: 18px;
   height: 18px;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(15, 23, 42, 0.5);
   border: none;
   border-radius: 50%;
   color: #fff;
@@ -466,23 +511,30 @@ export default {
 .h5-upload-add {
   width: 70px;
   height: 70px;
-  border: 1px dashed var(--oc-border, #d0d5dd);
-  border-radius: 6px;
+  border: 1px dashed var(--oc-gray-300);
+  border-radius: var(--oc-radius);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 24px;
-  color: var(--oc-text-light, #999);
-  background: var(--oc-bg-soft, #fafbfc);
+  color: var(--oc-gray-400);
+  background: var(--oc-gray-50);
   cursor: pointer;
+}
+
+.h5-upload-add:active {
+  background: var(--oc-blue-50);
+  border-color: var(--oc-blue-400);
+  color: var(--oc-blue-600);
 }
 
 .h5-upload-add-file {
   width: 100%;
-  height: 40px;
-  font-size: 14px;
+  height: 42px;
+  font-size: var(--oc-text-md);
 }
 
+/* 文件列表 */
 .h5-file-list {
   margin-bottom: 8px;
 }
@@ -491,32 +543,82 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 10px;
-  background: var(--oc-bg-soft, #fafbfc);
-  border-radius: 6px;
-  margin-bottom: 6px;
-  font-size: 13px;
-  color: #333;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--oc-gray-50);
+  border: 1px solid var(--oc-border-light);
+  border-radius: var(--oc-radius);
+  margin-bottom: 8px;
+  font-size: var(--oc-text-sm);
+  color: var(--oc-gray-700);
 }
 
-.h5-submit-wrap {
-  margin-top: 4px;
-  margin-bottom: 12px;
+.h5-file-item:last-child {
+  margin-bottom: 0;
+}
+
+.h5-file-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.h5-file-del {
+  background: none;
+  border: none;
+  font-size: 16px;
+  color: var(--oc-gray-400);
+  cursor: pointer;
+  padding: 0 2px;
+  flex-shrink: 0;
+}
+
+.h5-file-del:active {
+  color: var(--oc-danger);
+}
+
+/* 底部固定通栏提交按钮（位于 TabBar 上方） */
+.h5-submit-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(56px + env(safe-area-inset-bottom));
+  padding: 10px 12px;
+  background: var(--oc-bg-white);
+  border-top: 1px solid var(--oc-gray-200);
+  box-shadow: 0 -2px 10px rgba(15, 23, 42, 0.04);
+  z-index: 90;
+}
+
+.h5-submit-tip {
+  margin: 0 0 6px;
+  font-size: var(--oc-text-xs);
+  color: var(--oc-gray-400);
+  text-align: center;
 }
 
 .h5-submit-btn {
   width: 100%;
-  padding: 12px 0;
-  font-size: 16px;
+  padding: 11px 0;
+  font-size: 15px;
+  font-weight: 600;
   color: #fff;
-  background: linear-gradient(135deg, var(--oc-primary, #3584e4), var(--oc-primary-dark, #1a5fb4));
+  background: var(--oc-blue-600);
   border: none;
-  border-radius: 8px;
+  border-radius: var(--oc-radius);
   cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.h5-submit-btn:active:not(:disabled) {
+  background: var(--oc-blue-700);
 }
 
 .h5-submit-btn:disabled {
-  opacity: 0.5;
+  background: var(--oc-gray-300);
+  cursor: not-allowed;
 }
 
 /* 弹窗 */
@@ -526,7 +628,7 @@ export default {
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(10, 30, 60, 0.5);
+  background: rgba(15, 23, 42, 0.45);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -537,8 +639,8 @@ export default {
 
 /* 船型底部弹出式选择器 */
 .h5-picker-dialog {
-  background: #fff;
-  border-radius: var(--oc-radius-lg, 12px) var(--oc-radius-lg, 12px) 0 0;
+  background: var(--oc-bg-white);
+  border-radius: var(--oc-radius-lg) var(--oc-radius-lg) 0 0;
   width: 100%;
   max-height: 60vh;
   display: flex;
@@ -553,20 +655,20 @@ export default {
   justify-content: space-between;
   align-items: center;
   padding: 16px;
-  background: #fff;
-  color: var(--oc-title, #1a3a6e);
-  border-bottom: 1px solid var(--oc-border, #eef1f6);
+  background: var(--oc-bg-white);
+  color: var(--oc-gray-900);
+  border-bottom: 1px solid var(--oc-border-light);
 }
 
 .h5-picker-header span {
-  font-size: 16px;
+  font-size: var(--oc-text-lg);
   font-weight: 600;
 }
 
 .h5-picker-close {
   background: none;
   border: none;
-  color: var(--oc-text-light, #999);
+  color: var(--oc-gray-400);
   font-size: 22px;
   cursor: pointer;
   line-height: 1;
@@ -580,14 +682,18 @@ export default {
 .h5-picker-item {
   padding: 14px 16px;
   font-size: 15px;
-  color: #333;
-  border-bottom: 1px solid var(--oc-border, #f0f0f0);
+  color: var(--oc-gray-700);
+  border-bottom: 1px solid var(--oc-border-light);
   cursor: pointer;
 }
 
+.h5-picker-item:active {
+  background: var(--oc-gray-50);
+}
+
 .h5-picker-item.active {
-  color: var(--oc-primary-dark, #1a5fb4);
-  background: #e8f4ff;
+  color: var(--oc-blue-700);
+  background: var(--oc-blue-50);
   font-weight: 600;
 }
 
@@ -597,25 +703,26 @@ export default {
   justify-content: center;
   gap: 6px;
   padding: 14px;
-  color: var(--oc-primary-dark, #1a5fb4);
-  font-size: 14px;
-  border-top: 1px solid var(--oc-border, #f0f0f0);
+  color: var(--oc-blue-600);
+  font-size: var(--oc-text-md);
+  font-weight: 500;
+  border-top: 1px solid var(--oc-border-light);
   cursor: pointer;
 }
 
 /* 添加船型弹窗 */
 .h5-confirm-dialog {
-  background: #fff;
-  border-radius: var(--oc-radius-lg, 12px);
+  background: var(--oc-bg-white);
+  border-radius: var(--oc-radius-lg);
   padding: 20px;
   width: 100%;
   max-width: 300px;
 }
 
 .h5-confirm-title {
-  font-size: 16px;
+  font-size: var(--oc-text-lg);
   font-weight: 600;
-  color: var(--oc-title, #1a3a6e);
+  color: var(--oc-gray-900);
   margin-bottom: 16px;
   text-align: center;
 }
@@ -623,14 +730,19 @@ export default {
 .h5-confirm-input {
   width: 100%;
   height: 40px;
-  border: 1px solid var(--oc-border, #e0e4e8);
-  border-radius: 8px;
+  border: 1px solid var(--oc-gray-200);
+  border-radius: var(--oc-radius);
   padding: 0 12px;
-  font-size: 14px;
+  font-size: var(--oc-text-md);
   box-sizing: border-box;
   outline: none;
   margin-bottom: 16px;
-  background: var(--oc-bg-soft, #fafbfc);
+  background: var(--oc-bg-white);
+  color: var(--oc-gray-900);
+}
+
+.h5-confirm-input:focus {
+  border-color: var(--oc-blue-600);
 }
 
 .h5-confirm-btns {
@@ -642,20 +754,21 @@ export default {
 .h5-btn-cancel,
 .h5-btn-submit {
   padding: 8px 20px;
-  font-size: 14px;
-  border-radius: 6px;
+  font-size: var(--oc-text-md);
+  font-weight: 500;
+  border-radius: var(--oc-radius);
   cursor: pointer;
 }
 
 .h5-btn-cancel {
-  color: var(--oc-primary-dark, #1a5fb4);
-  background: #fff;
-  border: 1px solid var(--oc-primary, #3584e4);
+  color: var(--oc-gray-700);
+  background: var(--oc-bg-white);
+  border: 1px solid var(--oc-gray-200);
 }
 
 .h5-btn-submit {
   color: #fff;
-  background: linear-gradient(135deg, var(--oc-primary, #3584e4), var(--oc-primary-dark, #1a5fb4));
+  background: var(--oc-blue-600);
   border: none;
 }
 </style>

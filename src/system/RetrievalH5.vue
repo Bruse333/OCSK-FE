@@ -1,6 +1,6 @@
 <template>
   <div class="h5-retrieval-page">
-    <!-- 搜索栏 -->
+    <!-- 筛选卡片 -->
     <div class="h5-search-card">
       <div class="h5-search-row">
         <div class="h5-ship-select" @click="showShipPicker = true">
@@ -23,75 +23,119 @@
       <button class="h5-search-btn" @click="handleSearch">检索</button>
     </div>
 
-    <!-- 结果统计 -->
-    <div class="h5-result-stat" v-if="hasSearched">
-      共 {{ total }} 条结果
-    </div>
-
-    <!-- 结果列表 -->
-    <div class="h5-result-list" v-if="resultList.length > 0">
-      <div
-        v-for="(item, index) in resultList"
-        :key="item.id"
-        class="h5-result-card"
-        @click="openDetail(index)"
-      >
-        <div class="h5-card-header">
-          <span class="h5-card-name">{{ item.name }}</span>
-          <span class="h5-card-date">{{ item.createTimeStr }}</span>
+    <!-- 加载状态：骨架屏 -->
+    <div class="h5-result-list" v-if="isLoading">
+      <div v-for="n in 3" :key="n" class="h5-result-card h5-skeleton-card">
+        <div class="h5-sk-head">
+          <span class="h5-sk-block h5-sk-pill"></span>
+          <span class="h5-sk-block h5-sk-date"></span>
         </div>
-        <div class="h5-card-body">
-          <div class="h5-card-line">
-            <span class="h5-card-label">故障现象</span>
-            <span class="h5-card-text">{{ item.phenomenon }}</span>
-          </div>
-          <div class="h5-card-line">
-            <span class="h5-card-label">排查步骤</span>
-            <span class="h5-card-text">{{ item.shootingPreview }}</span>
-          </div>
-        </div>
-        <div class="h5-card-footer" @click.stop>
-          <button
-            class="h5-card-btn h5-edit-btn"
-            :class="{ disabled: privilege != 3 }"
-            :disabled="privilege != 3"
-            @click="openEdit(index)"
-          >编辑</button>
-          <button
-            class="h5-card-btn h5-delete-btn"
-            :class="{ disabled: privilege < 3 }"
-            :disabled="privilege < 3"
-            @click="handleDelete(index)"
-          >删除</button>
-        </div>
-      </div>
-
-      <!-- 分页 -->
-      <div class="h5-pagination" v-if="hasSearched && resultList.length > 0">
-        <button
-          class="h5-page-btn"
-          :disabled="currentPage <= 1"
-          @click="prevPage"
-        >上一页</button>
-        <span class="h5-page-info">{{ currentPage }} / {{ totalPages > 0 ? totalPages : 1 }}</span>
-        <button
-          class="h5-page-btn"
-          :disabled="currentPage >= totalPages || totalPages === 0"
-          @click="nextPage"
-        >下一页</button>
+        <span class="h5-sk-block h5-sk-label"></span>
+        <span class="h5-sk-block h5-sk-line"></span>
+        <span class="h5-sk-block h5-sk-line h5-sk-short"></span>
       </div>
     </div>
 
-    <!-- 空状态 -->
-    <div class="h5-empty-state" v-if="hasSearched && resultList.length === 0 && !isLoading">
-      <p>暂无检索结果</p>
-    </div>
+    <template v-else>
+      <!-- 结果元信息 -->
+      <div class="h5-result-meta" v-if="hasSearched">
+        <span class="h5-result-total">共 {{ total }} 条结果</span>
+        <span class="h5-result-page" v-if="total > 0">第 {{ currentPage }}/{{ totalPages > 0 ? totalPages : 1 }} 页</span>
+      </div>
 
-    <!-- 加载状态 -->
-    <div class="h5-loading-state" v-if="isLoading">
-      <div class="h5-spinner"></div>
-      <p>正在检索...</p>
-    </div>
+      <!-- 结果列表 -->
+      <div class="h5-result-list" v-if="resultList.length > 0">
+        <div
+          v-for="(item, index) in resultList"
+          :key="item.id"
+          class="h5-result-card"
+          @click="openDetail(index)"
+        >
+          <div class="h5-card-header">
+            <span class="h5-ship-pill">{{ item.name }}</span>
+            <span class="h5-card-date">{{ item.createTimeStr }}</span>
+          </div>
+          <div class="h5-card-body">
+            <div class="h5-card-line">
+              <span class="h5-card-label">故障现象</span>
+              <span class="h5-card-text h5-card-phenomenon">
+                <template v-for="(seg, si) in splitByKeywords(item.phenomenon)" :key="si"><mark v-if="seg.hit" class="h5-kw-hit">{{ seg.text }}</mark><template v-else>{{ seg.text }}</template></template>
+              </span>
+            </div>
+            <div class="h5-card-line">
+              <span class="h5-card-label">排查步骤</span>
+              <span class="h5-card-text">
+                <template v-for="(seg, si) in splitByKeywords(item.shootingPreview)" :key="si"><mark v-if="seg.hit" class="h5-kw-hit">{{ seg.text }}</mark><template v-else>{{ seg.text }}</template></template>
+              </span>
+            </div>
+          </div>
+          <div class="h5-card-footer" @click.stop>
+            <div class="h5-card-actions">
+              <button
+                class="h5-card-btn h5-edit-btn"
+                :disabled="privilege != 3"
+                @click="openEdit(index)"
+              >编辑</button>
+              <span class="h5-action-divider"></span>
+              <button
+                class="h5-card-btn h5-delete-btn"
+                :disabled="privilege < 3"
+                @click="handleDelete(index)"
+              >删除</button>
+            </div>
+            <span class="h5-detail-link" @click="openDetail(index)">查看详情 ›</span>
+          </div>
+        </div>
+
+        <!-- 分页 -->
+        <div class="h5-pagination" v-if="hasSearched && resultList.length > 0">
+          <button
+            class="h5-page-btn"
+            :disabled="currentPage <= 1"
+            @click="prevPage"
+          >上一页</button>
+          <span class="h5-page-info">{{ currentPage }} / {{ totalPages > 0 ? totalPages : 1 }}</span>
+          <button
+            class="h5-page-btn"
+            :disabled="currentPage >= totalPages || totalPages === 0"
+            @click="nextPage"
+          >下一页</button>
+        </div>
+      </div>
+
+      <!-- 空状态：无结果 -->
+      <div class="h5-empty-box" v-else-if="hasSearched">
+        <div class="h5-empty-illustration">
+          <svg viewBox="0 0 120 120" fill="none">
+            <rect x="28" y="20" width="48" height="60" rx="6" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="2.5"/>
+            <line x1="38" y1="34" x2="66" y2="34" stroke="#E2E8F0" stroke-width="2.5" stroke-linecap="round"/>
+            <line x1="38" y1="44" x2="66" y2="44" stroke="#E2E8F0" stroke-width="2.5" stroke-linecap="round"/>
+            <line x1="38" y1="54" x2="56" y2="54" stroke="#E2E8F0" stroke-width="2.5" stroke-linecap="round"/>
+            <circle cx="72" cy="66" r="16" fill="#fff" stroke="#93C5FD" stroke-width="3"/>
+            <line x1="83" y1="77" x2="94" y2="88" stroke="#93C5FD" stroke-width="3.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <p class="h5-empty-title">未找到相关记录</p>
+        <p class="h5-empty-sub">换个关键词试试，或添加一条新的排查记录</p>
+        <button v-if="privilege >= 2" class="h5-empty-action" @click="goAddRecord">添加记录</button>
+      </div>
+
+      <!-- 空状态：未检索 -->
+      <div class="h5-empty-box" v-else>
+        <div class="h5-empty-illustration">
+          <svg viewBox="0 0 120 120" fill="none">
+            <rect x="28" y="20" width="48" height="60" rx="6" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="2.5"/>
+            <line x1="38" y1="34" x2="66" y2="34" stroke="#E2E8F0" stroke-width="2.5" stroke-linecap="round"/>
+            <line x1="38" y1="44" x2="66" y2="44" stroke="#E2E8F0" stroke-width="2.5" stroke-linecap="round"/>
+            <line x1="38" y1="54" x2="56" y2="54" stroke="#E2E8F0" stroke-width="2.5" stroke-linecap="round"/>
+            <circle cx="72" cy="66" r="16" fill="#fff" stroke="#93C5FD" stroke-width="3"/>
+            <line x1="83" y1="77" x2="94" y2="88" stroke="#93C5FD" stroke-width="3.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <p class="h5-empty-title">请选择船型开始检索</p>
+        <p class="h5-empty-sub">选择船型后，可输入关键词精确查找故障记录</p>
+      </div>
+    </template>
 
     <!-- 船型选择器弹窗（底部弹出式） -->
     <div class="h5-modal-overlay" v-if="showShipPicker" @click.self="showShipPicker = false">
@@ -121,7 +165,7 @@
           <h3>关键词</h3>
           <button class="h5-dialog-close" @click="showKeywordModal = false">×</button>
         </div>
-        <div class="h5-dialog-body">
+        <div class="h5-dialog-body h5-kw-dialog-body">
           <div class="h5-kw-list" v-if="keywords.length > 0">
             <span v-for="(kw, i) in keywords" :key="i" class="h5-kw-tag">
               {{ kw }}
@@ -143,10 +187,13 @@
     <!-- 详情弹窗（卡片化，与 PC 端视觉一致） -->
     <div class="h5-modal-overlay" v-if="showDetailModal" @click.self="closeDetail">
       <div class="h5-dialog h5-detail-dialog">
-        <div class="h5-dialog-header">
+        <div class="h5-dialog-header h5-detail-header">
           <div class="h5-detail-header-main">
-            <h3>{{ currentDetail.name }}</h3>
-            <span class="h5-detail-time">创建于 {{ currentDetail.createTimeStr }}</span>
+            <h3>{{ currentDetail.phenomenon }}</h3>
+            <div class="h5-detail-header-meta">
+              <span class="h5-ship-pill">{{ currentDetail.name }}</span>
+              <span class="h5-detail-time">创建于 {{ currentDetail.createTimeStr }}</span>
+            </div>
           </div>
           <button class="h5-dialog-close" @click="closeDetail">×</button>
         </div>
@@ -190,6 +237,7 @@
                   :preview-src-list="currentDetail.photoList"
                   :initial-index="i"
                   fit="cover"
+                  preview-teleported
                   class="h5-photo-item"
                   :alt="`照片 ${i + 1}`"
                 />
@@ -205,7 +253,12 @@
                   target="_blank"
                   class="h5-doc-card"
                 >
-                  <span class="h5-doc-icon">📄</span>
+                  <span class="h5-doc-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                      <polyline points="14 2 14 8 20 8"></polyline>
+                    </svg>
+                  </span>
                   <span class="h5-doc-name">文件 {{ i + 1 }}</span>
                 </a>
               </div>
@@ -214,11 +267,11 @@
 
           <!-- 流程模式 -->
           <div v-else class="h5-flow-wrap">
-            <div v-if="flowLoading" class="h5-loading-state">
+            <div v-if="flowLoading" class="h5-flow-state">
               <div class="h5-spinner"></div>
               <p>正在加载流程...</p>
             </div>
-            <div v-else-if="flowError" class="h5-loading-state">
+            <div v-else-if="flowError" class="h5-flow-state">
               <p>{{ flowError }}</p>
               <button class="h5-btn-primary" @click="loadDetailFlow">重试</button>
             </div>
@@ -291,7 +344,7 @@
 <script>
 import { ElMessage, ElMessageBox } from 'element-plus'
 import request from '@/utils/request'
-import { getUsername, getPrivilege } from '@/utils/token'
+import { getPrivilege } from '@/utils/token'
 import { deleteFiles } from '@/utils/file'
 import { uploadFile } from '@/utils/uploadQueue'
 import { parseFlow } from '@/utils/flowSchema'
@@ -368,6 +421,21 @@ export default {
     },
     removeKeyword(index) {
       this.keywords.splice(index, 1)
+    },
+    /** 将文本按关键词切分为片段（用于卡片命中高亮，纯展示层处理） */
+    splitByKeywords(text) {
+      if (!text) return [{ text: '', hit: false }]
+      const kws = this.keywords.map(k => (k || '').trim()).filter(Boolean)
+      if (kws.length === 0) return [{ text, hit: false }]
+      const pattern = kws.map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')
+      const splitRe = new RegExp(`(${pattern})`, 'gi')
+      const hitRe = new RegExp(`^(?:${pattern})$`, 'i')
+      return String(text).split(splitRe)
+        .filter(s => s !== '')
+        .map(s => ({ text: s, hit: hitRe.test(s) }))
+    },
+    goAddRecord() {
+      this.$router.push('/system/add')
     },
 
     handleSearch() {
@@ -657,12 +725,13 @@ export default {
   padding-bottom: 8px;
 }
 
-/* 搜索卡片 */
+/* ===== 筛选卡片 ===== */
 .h5-search-card {
-  background: #fff;
-  border-radius: var(--oc-radius, 10px);
-  padding: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  background: var(--oc-bg-white);
+  border: var(--oc-card-border);
+  border-radius: 14px;
+  padding: 14px;
+  box-shadow: var(--oc-shadow-sm);
   margin-bottom: 12px;
 }
 
@@ -670,7 +739,7 @@ export default {
   margin-bottom: 10px;
 }
 
-.h5-search-row:last-child {
+.h5-search-row:last-of-type {
   margin-bottom: 0;
 }
 
@@ -678,44 +747,51 @@ export default {
   display: flex;
   align-items: center;
   padding: 10px 12px;
-  border: 1px solid var(--oc-border, #e0e4e8);
-  border-radius: 8px;
-  background: var(--oc-bg-soft, #fafbfc);
+  border: 1px solid var(--oc-gray-200);
+  border-radius: var(--oc-radius);
+  background: var(--oc-bg-white);
 }
 
 .h5-select-label {
-  font-size: 13px;
-  color: var(--oc-text-light, #999);
+  font-size: var(--oc-text-sm);
+  color: var(--oc-gray-400);
   margin-right: 10px;
+  flex-shrink: 0;
 }
 
 .h5-select-value {
   flex: 1;
   font-size: 15px;
-  color: #333;
+  color: var(--oc-gray-900);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .h5-select-value.placeholder {
-  color: var(--oc-text-light, #999);
+  color: var(--oc-gray-400);
 }
 
 .h5-select-arrow {
-  color: var(--oc-text-light, #999);
+  color: var(--oc-gray-400);
   font-size: 10px;
   transform: rotate(90deg);
+  flex-shrink: 0;
 }
 
 .h5-keyword-input {
   padding: 8px 12px;
-  border: 1px solid var(--oc-border, #e0e4e8);
-  border-radius: 8px;
-  background: var(--oc-bg-soft, #fafbfc);
-  min-height: 36px;
+  border: 1px solid var(--oc-gray-200);
+  border-radius: var(--oc-radius);
+  background: var(--oc-bg-white);
+  min-height: 38px;
+  box-sizing: border-box;
 }
 
 .h5-keyword-placeholder {
-  font-size: 14px;
-  color: var(--oc-text-light, #999);
+  font-size: var(--oc-text-md);
+  color: var(--oc-gray-400);
+  line-height: 22px;
 }
 
 .h5-keyword-tags {
@@ -724,73 +800,111 @@ export default {
   gap: 6px;
 }
 
+/* 关键词 chip：浅蓝底 + 深蓝字 */
 .h5-kw-tag {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
   padding: 3px 8px;
-  background: #e8f4ff;
-  border: 1px solid #b3d8ff;
-  border-radius: 4px;
-  font-size: 12px;
-  color: var(--oc-primary-dark, #1a5fb4);
+  background: var(--oc-blue-50);
+  border-radius: var(--oc-radius-sm);
+  font-size: var(--oc-text-xs);
+  color: var(--oc-blue-700);
 }
 
 .h5-kw-more {
-  font-size: 12px;
-  color: var(--oc-text-light, #999);
+  font-size: var(--oc-text-xs);
+  color: var(--oc-gray-400);
   padding: 3px 0;
 }
 
+/* 检索主按钮：实底品牌蓝 */
 .h5-search-btn {
   width: 100%;
   padding: 11px 0;
   font-size: 15px;
+  font-weight: 600;
   color: #fff;
-  background: linear-gradient(135deg, var(--oc-primary, #3584e4), var(--oc-primary-dark, #1a5fb4));
+  background: var(--oc-blue-600);
   border: none;
-  border-radius: 8px;
+  border-radius: var(--oc-radius);
   cursor: pointer;
-  margin-top: 6px;
+  margin-top: 12px;
+  transition: background-color 0.2s ease;
 }
 
-/* 统计 */
-.h5-result-stat {
-  font-size: 13px;
-  color: var(--oc-text, #46587a);
+.h5-search-btn:active {
+  background: var(--oc-blue-700);
+}
+
+/* ===== 结果元信息 ===== */
+.h5-result-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
   margin-bottom: 10px;
+  padding: 0 2px;
 }
 
-/* 结果卡片 */
+.h5-result-total {
+  font-size: var(--oc-text-md);
+  font-weight: 600;
+  color: var(--oc-gray-900);
+  font-feature-settings: "tnum";
+}
+
+.h5-result-page {
+  font-size: var(--oc-text-sm);
+  color: var(--oc-gray-400);
+  font-feature-settings: "tnum";
+}
+
+/* ===== 结果卡片 ===== */
 .h5-result-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
 .h5-result-card {
-  background: #fff;
-  border-radius: var(--oc-radius, 10px);
+  background: var(--oc-bg-white);
+  border: var(--oc-card-border);
+  border-radius: 14px;
   padding: 14px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--oc-shadow-sm);
 }
 
 .h5-card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 10px;
   margin-bottom: 10px;
   padding-bottom: 10px;
-  border-bottom: 1px solid var(--oc-border, #f0f0f0);
+  border-bottom: 1px solid var(--oc-border-light);
 }
 
-.h5-card-name {
-  font-size: 15px;
+/* 船型标签：蓝色 pill */
+.h5-ship-pill {
+  display: inline-flex;
+  align-items: center;
+  background: var(--oc-blue-50);
+  color: var(--oc-blue-700);
+  font-size: var(--oc-text-xs);
   font-weight: 600;
-  color: var(--oc-title, #333);
+  padding: 3px 10px;
+  border-radius: var(--oc-radius-sm);
+  max-width: 60%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .h5-card-date {
-  font-size: 12px;
-  color: var(--oc-text-light, #999);
+  font-size: var(--oc-text-xs);
+  color: var(--oc-gray-400);
+  font-feature-settings: "tnum";
+  flex-shrink: 0;
 }
 
 .h5-card-line {
@@ -801,118 +915,215 @@ export default {
   margin-bottom: 0;
 }
 
+/* 区块小标题：12px/600/浅灰 */
 .h5-card-label {
-  font-size: 12px;
-  color: var(--oc-primary-dark, #1a5fb4);
+  font-size: var(--oc-text-xs);
+  font-weight: 600;
+  color: var(--oc-gray-400);
   display: block;
   margin-bottom: 2px;
 }
 
 .h5-card-text {
-  font-size: 14px;
-  color: #555;
-  line-height: 1.4;
+  font-size: var(--oc-text-sm);
+  color: var(--oc-gray-500);
+  line-height: 1.5;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
 
-.h5-card-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 12px;
-  padding-top: 10px;
-  border-top: 1px solid var(--oc-border, #f0f0f0);
+.h5-card-phenomenon {
+  font-size: var(--oc-text-md);
+  color: var(--oc-gray-700);
 }
 
+/* 关键词命中高亮 */
+.h5-kw-hit {
+  background: var(--oc-blue-100);
+  color: var(--oc-blue-800);
+  padding: 0 1px;
+  border-radius: 2px;
+}
+
+.h5-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--oc-border-light);
+}
+
+.h5-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* 文字按钮 */
 .h5-card-btn {
-  padding: 5px 16px;
-  font-size: 13px;
-  border-radius: 6px;
-  border: 1px solid;
+  padding: 4px 6px;
+  font-size: var(--oc-text-sm);
+  border: none;
+  background: transparent;
   cursor: pointer;
 }
 
-.h5-card-btn.disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
 .h5-edit-btn {
-  background: #e8f4ff;
-  border-color: #b3d8ff;
-  color: var(--oc-primary-dark, #1a5fb4);
+  color: var(--oc-blue-600);
 }
 
 .h5-delete-btn {
-  background: #fef0f0;
-  border-color: #fbc4c4;
-  color: var(--oc-danger, #ed4014);
+  color: var(--oc-danger);
 }
 
-/* 分页 */
+.h5-card-btn:disabled {
+  color: var(--oc-gray-300);
+  cursor: not-allowed;
+}
+
+.h5-action-divider {
+  width: 1px;
+  height: 12px;
+  background: var(--oc-gray-200);
+}
+
+.h5-detail-link {
+  font-size: var(--oc-text-sm);
+  color: var(--oc-blue-600);
+  flex-shrink: 0;
+}
+
+/* ===== 骨架屏 ===== */
+.h5-sk-block {
+  display: block;
+  background: var(--oc-gray-100);
+  border-radius: var(--oc-radius-sm);
+  animation: h5-sk-breathe 1.2s ease-in-out infinite;
+}
+
+@keyframes h5-sk-breathe {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+
+.h5-sk-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--oc-border-light);
+}
+
+.h5-sk-pill { width: 64px; height: 20px; }
+.h5-sk-date { width: 56px; height: 12px; }
+.h5-sk-label { width: 52px; height: 12px; margin-bottom: 8px; }
+.h5-sk-line { width: 100%; height: 14px; margin-bottom: 6px; }
+.h5-sk-short { width: 60%; margin-bottom: 0; }
+
+/* ===== 空状态 ===== */
+.h5-empty-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 48px 24px;
+  background: var(--oc-bg-white);
+  border: var(--oc-card-border);
+  border-radius: 14px;
+  box-shadow: var(--oc-shadow-sm);
+}
+
+.h5-empty-illustration {
+  width: 100px;
+  height: 100px;
+  margin-bottom: 14px;
+}
+
+.h5-empty-illustration svg {
+  width: 100%;
+  height: 100%;
+}
+
+.h5-empty-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--oc-gray-700);
+}
+
+.h5-empty-sub {
+  margin: 6px 0 0;
+  font-size: var(--oc-text-sm);
+  color: var(--oc-gray-400);
+  text-align: center;
+}
+
+/* 空状态行动按钮：次按钮风格 */
+.h5-empty-action {
+  margin-top: 16px;
+  padding: 8px 24px;
+  font-size: var(--oc-text-md);
+  font-weight: 500;
+  color: var(--oc-gray-700);
+  background: var(--oc-bg-white);
+  border: 1px solid var(--oc-gray-200);
+  border-radius: var(--oc-radius);
+  cursor: pointer;
+}
+
+.h5-empty-action:active {
+  color: var(--oc-blue-600);
+  border-color: var(--oc-blue-400);
+}
+
+/* ===== 分页 ===== */
 .h5-pagination {
   display: flex;
   justify-content: center;
   align-items: center;
   gap: 16px;
-  margin-top: 16px;
+  margin-top: 4px;
   padding: 12px 0;
 }
 
+/* 次按钮风格 */
 .h5-page-btn {
   padding: 8px 16px;
-  font-size: 14px;
-  color: var(--oc-primary-dark, #1a5fb4);
-  background: #fff;
-  border: 1px solid var(--oc-primary, #3584e4);
-  border-radius: 6px;
+  font-size: var(--oc-text-md);
+  color: var(--oc-gray-700);
+  background: var(--oc-bg-white);
+  border: 1px solid var(--oc-gray-200);
+  border-radius: var(--oc-radius);
   cursor: pointer;
 }
 
+.h5-page-btn:active:not(:disabled) {
+  color: var(--oc-blue-600);
+  border-color: var(--oc-blue-400);
+}
+
 .h5-page-btn:disabled {
-  opacity: 0.4;
+  color: var(--oc-gray-300);
   cursor: not-allowed;
 }
 
 .h5-page-info {
-  font-size: 14px;
-  color: var(--oc-text, #46587a);
+  font-size: var(--oc-text-md);
+  color: var(--oc-gray-500);
+  font-feature-settings: "tnum";
 }
 
-/* 空状态 */
-.h5-empty-state,
-.h5-loading-state {
-  text-align: center;
-  padding: 50px 0;
-  color: var(--oc-text-light, #999);
-  font-size: 14px;
-}
-
-.h5-spinner {
-  width: 28px;
-  height: 28px;
-  border: 3px solid var(--oc-border, #e0e4e8);
-  border-top-color: var(--oc-primary-dark, #1a5fb4);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  margin: 0 auto 10px;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-/* 弹窗 */
+/* ===== 弹窗 ===== */
 .h5-modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(10, 30, 60, 0.5);
+  background: rgba(15, 23, 42, 0.45);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -922,8 +1133,8 @@ export default {
 }
 
 .h5-dialog {
-  background: #fff;
-  border-radius: var(--oc-radius-lg, 12px);
+  background: var(--oc-bg-white);
+  border-radius: var(--oc-radius-lg);
   width: 100%;
   max-width: 400px;
   max-height: 85vh;
@@ -934,8 +1145,8 @@ export default {
 
 /* 船型底部弹出式选择器 */
 .h5-picker-dialog {
-  background: #fff;
-  border-radius: var(--oc-radius-lg, 12px) var(--oc-radius-lg, 12px) 0 0;
+  background: var(--oc-bg-white);
+  border-radius: var(--oc-radius-lg) var(--oc-radius-lg) 0 0;
   width: 100%;
   max-height: 60vh;
   display: flex;
@@ -952,34 +1163,29 @@ export default {
   justify-content: space-between;
   align-items: center;
   padding: 16px;
-  background: #fff;
-  color: var(--oc-title, #1a3a6e);
-  border-bottom: 1px solid var(--oc-border, #eef1f6);
+  background: var(--oc-bg-white);
+  color: var(--oc-gray-900);
+  border-bottom: 1px solid var(--oc-border-light);
   flex-shrink: 0;
 }
 
 .h5-picker-header span,
 .h5-dialog-header h3 {
   margin: 0;
-  font-size: 16px;
+  font-size: var(--oc-text-lg);
   font-weight: 600;
-}
-
-.h5-detail-header-main {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
 }
 
 .h5-picker-close,
 .h5-dialog-close {
   background: none;
   border: none;
-  color: var(--oc-text-light, #999);
+  color: var(--oc-gray-400);
   font-size: 22px;
   cursor: pointer;
   line-height: 1;
   padding: 0;
+  flex-shrink: 0;
 }
 
 .h5-picker-body {
@@ -990,14 +1196,22 @@ export default {
 .h5-picker-item {
   padding: 14px 16px;
   font-size: 15px;
-  color: #333;
-  border-bottom: 1px solid var(--oc-border, #f0f0f0);
+  color: var(--oc-gray-700);
+  border-bottom: 1px solid var(--oc-border-light);
   cursor: pointer;
 }
 
+.h5-picker-item:last-child {
+  border-bottom: none;
+}
+
+.h5-picker-item:active {
+  background: var(--oc-gray-50);
+}
+
 .h5-picker-item.active {
-  color: var(--oc-primary-dark, #1a5fb4);
-  background: #e8f4ff;
+  color: var(--oc-blue-700);
+  background: var(--oc-blue-50);
   font-weight: 600;
 }
 
@@ -1005,17 +1219,23 @@ export default {
   flex: 1;
   overflow-y: auto;
   padding: 16px;
-  background: var(--oc-bg, #f5f7fa);
+  background: var(--oc-gray-50);
   -webkit-overflow-scrolling: touch;
+}
+
+/* 关键词弹窗 body 用白底 */
+.h5-kw-dialog-body {
+  background: var(--oc-bg-white);
 }
 
 .h5-dialog-footer {
   padding: 12px 16px;
-  border-top: 1px solid var(--oc-border, #eef1f6);
+  border-top: 1px solid var(--oc-border-light);
   display: flex;
   justify-content: flex-end;
   gap: 10px;
   flex-shrink: 0;
+  background: var(--oc-bg-white);
 }
 
 /* 关键词弹窗 */
@@ -1028,14 +1248,14 @@ export default {
 
 .h5-kw-close {
   margin-left: 4px;
-  color: var(--oc-text-light, #999);
+  color: var(--oc-gray-400);
   cursor: pointer;
 }
 
 .h5-no-kw {
-  font-size: 13px;
-  color: var(--oc-text-light, #999);
-  margin-bottom: 16px;
+  font-size: var(--oc-text-sm);
+  color: var(--oc-gray-400);
+  margin: 0 0 16px;
 }
 
 .h5-kw-input-row {
@@ -1046,20 +1266,25 @@ export default {
 .h5-kw-input {
   flex: 1;
   height: 38px;
-  border: 1px solid var(--oc-border, #e0e4e8);
-  border-radius: 8px;
+  border: 1px solid var(--oc-gray-200);
+  border-radius: var(--oc-radius);
   padding: 0 12px;
-  font-size: 14px;
+  font-size: var(--oc-text-md);
   outline: none;
+  color: var(--oc-gray-900);
+}
+
+.h5-kw-input:focus {
+  border-color: var(--oc-blue-600);
 }
 
 .h5-kw-add-btn {
   padding: 0 16px;
-  font-size: 14px;
+  font-size: var(--oc-text-md);
   color: #fff;
-  background: var(--oc-primary-dark, #1a5fb4);
+  background: var(--oc-blue-600);
   border: none;
-  border-radius: 8px;
+  border-radius: var(--oc-radius);
   cursor: pointer;
 }
 
@@ -1067,48 +1292,83 @@ export default {
   width: 100%;
   padding: 10px 0;
   font-size: 15px;
+  font-weight: 600;
   color: #fff;
-  background: linear-gradient(135deg, var(--oc-primary, #3584e4), var(--oc-primary-dark, #1a5fb4));
+  background: var(--oc-blue-600);
   border: none;
-  border-radius: 8px;
+  border-radius: var(--oc-radius);
   cursor: pointer;
 }
 
-/* 详情弹窗 */
+/* ===== 详情弹窗 ===== */
 .h5-detail-dialog {
   max-height: 80vh;
 }
 
-.h5-detail-time {
-  font-size: 12px;
-  color: var(--oc-text-light, #999);
-  font-weight: 400;
+.h5-detail-header {
+  align-items: flex-start;
 }
 
+.h5-detail-header-main {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  flex: 1;
+  padding-right: 12px;
+}
+
+.h5-detail-header-main h3 {
+  font-size: var(--oc-text-lg);
+  line-height: var(--oc-leading-tight);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.h5-detail-header-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.h5-detail-time {
+  font-size: var(--oc-text-xs);
+  color: var(--oc-gray-400);
+  font-weight: 400;
+  font-feature-settings: "tnum";
+}
+
+/* 图文/流程 Tab：灰底胶囊容器 + 白色选中块 */
 .h5-detail-tabs {
   display: flex;
   gap: 4px;
   margin-bottom: 14px;
-  background: #fff;
-  border-radius: 8px;
+  background: var(--oc-gray-100);
+  border-radius: 10px;
   padding: 4px;
 }
 
 .h5-detail-tab {
   flex: 1;
-  padding: 8px 0;
-  font-size: 14px;
-  color: var(--oc-text-light, #999);
+  padding: 7px 0;
+  font-size: var(--oc-text-md);
+  color: var(--oc-gray-500);
   background: none;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
+  font-weight: 500;
 }
 
 .h5-detail-tab.active {
-  color: #fff;
-  background: var(--oc-primary-dark, #1a5fb4);
+  color: var(--oc-blue-700);
+  background: var(--oc-bg-white);
+  box-shadow: var(--oc-shadow-sm);
   font-weight: 600;
 }
 
@@ -1116,18 +1376,41 @@ export default {
   min-height: 200px;
 }
 
-.h5-flow-wrap .h5-loading-state {
-  padding: 30px 0;
+.h5-flow-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 36px 0;
+  background: var(--oc-bg-white);
+  border-radius: var(--oc-radius-md);
+  border: 1px solid var(--oc-border-light);
+  color: var(--oc-gray-400);
+  font-size: var(--oc-text-md);
 }
 
-.h5-flow-wrap .h5-btn-primary {
-  margin-top: 8px;
+.h5-flow-state p {
+  margin: 0;
+}
+
+.h5-spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid var(--oc-gray-200);
+  border-top-color: var(--oc-blue-600);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 /* 详情卡片区块（与 PC 端卡片风格一致） */
 .h5-detail-block {
-  background: #fff;
-  border-radius: 8px;
+  background: var(--oc-bg-white);
+  border: 1px solid var(--oc-border-light);
+  border-radius: var(--oc-radius-md);
   padding: 14px;
   margin-bottom: 12px;
 }
@@ -1137,9 +1420,9 @@ export default {
 }
 
 .h5-detail-title {
-  font-size: 14px;
+  font-size: var(--oc-text-md);
   font-weight: 600;
-  color: var(--oc-title, #1a3a6e);
+  color: var(--oc-gray-900);
   margin-bottom: 10px;
   display: flex;
   align-items: center;
@@ -1147,40 +1430,44 @@ export default {
 }
 
 .h5-detail-count {
-  font-size: 12px;
+  font-size: var(--oc-text-xs);
   font-weight: 400;
-  color: var(--oc-text-light, #999);
+  color: var(--oc-gray-400);
+  font-feature-settings: "tnum";
 }
 
 .h5-detail-text {
-  font-size: 14px;
-  color: var(--oc-text, #46587a);
-  line-height: 1.5;
+  font-size: var(--oc-text-md);
+  color: var(--oc-gray-700);
+  line-height: 1.6;
   margin: 0;
 }
 
 .h5-steps {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
 .h5-step {
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  font-size: 14px;
-  color: var(--oc-text, #46587a);
+  font-size: var(--oc-text-md);
+  color: var(--oc-gray-700);
   line-height: 1.5;
 }
 
+/* 步骤序号：浅蓝底 + 蓝色描边圆环（规范 9.5） */
 .h5-step-index {
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--oc-primary, #3584e4), var(--oc-primary-dark, #1a5fb4));
-  color: #fff;
-  font-size: 12px;
+  background: var(--oc-primary-bg);
+  color: var(--oc-primary-dark);
+  border: 1.5px solid var(--oc-primary);
+  font-size: var(--oc-text-xs);
+  font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1200,8 +1487,9 @@ export default {
 .h5-photo-item {
   width: 80px;
   height: 80px;
-  border-radius: 6px;
+  border-radius: var(--oc-radius);
   overflow: hidden;
+  border: 1px solid var(--oc-border-light);
 }
 
 .h5-docs {
@@ -1215,55 +1503,76 @@ export default {
   align-items: center;
   gap: 6px;
   padding: 10px 12px;
-  background: #fff;
-  border: 1px solid var(--oc-border, #eef1f6);
-  border-radius: 8px;
-  font-size: 13px;
-  color: var(--oc-text, #46587a);
+  background: var(--oc-gray-50);
+  border: 1px solid var(--oc-border-light);
+  border-radius: var(--oc-radius);
+  font-size: var(--oc-text-sm);
+  color: var(--oc-gray-700);
   text-decoration: none;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
 }
 
 .h5-doc-card:active {
-  background: var(--oc-bg, #f5f7fa);
+  background: var(--oc-blue-50);
+  border-color: var(--oc-blue-200);
 }
 
 .h5-doc-icon {
-  font-size: 18px;
+  width: 18px;
+  height: 18px;
+  color: var(--oc-blue-600);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.h5-doc-icon svg {
+  width: 100%;
+  height: 100%;
 }
 
 .h5-doc-name {
   font-weight: 500;
 }
 
-/* 编辑表单 */
+/* ===== 编辑弹窗表单 ===== */
 .h5-form-group {
   margin-bottom: 16px;
 }
 
+.h5-form-group:last-child {
+  margin-bottom: 0;
+}
+
 .h5-form-group label {
   display: block;
-  font-size: 14px;
-  color: #333;
+  font-size: var(--oc-text-md);
+  font-weight: 500;
+  color: var(--oc-gray-700);
   margin-bottom: 6px;
 }
 
 .h5-required {
-  color: var(--oc-danger, #ed4014);
+  color: var(--oc-danger);
 }
 
 .h5-textarea {
   width: 100%;
   min-height: 80px;
-  padding: 10px;
-  border: 1px solid var(--oc-border, #e0e4e8);
-  border-radius: 8px;
-  font-size: 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--oc-gray-200);
+  border-radius: var(--oc-radius);
+  font-size: var(--oc-text-md);
   box-sizing: border-box;
   resize: vertical;
   outline: none;
   font-family: inherit;
-  background: var(--oc-bg-soft, #fafbfc);
+  background: var(--oc-bg-white);
+  color: var(--oc-gray-900);
+}
+
+.h5-textarea:focus {
+  border-color: var(--oc-blue-600);
 }
 
 .h5-edit-steps {
@@ -1281,32 +1590,48 @@ export default {
 .h5-step-input {
   flex: 1;
   height: 38px;
-  border: 1px solid var(--oc-border, #e0e4e8);
-  border-radius: 8px;
+  border: 1px solid var(--oc-gray-200);
+  border-radius: var(--oc-radius);
   padding: 0 10px;
-  font-size: 14px;
+  font-size: var(--oc-text-md);
   outline: none;
   box-sizing: border-box;
-  background: var(--oc-bg-soft, #fafbfc);
+  background: var(--oc-bg-white);
+  color: var(--oc-gray-900);
+}
+
+.h5-step-input:focus {
+  border-color: var(--oc-blue-600);
 }
 
 .h5-step-del {
   background: none;
   border: none;
   font-size: 18px;
-  color: var(--oc-danger, #ed4014);
+  color: var(--oc-gray-400);
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+.h5-step-del:active {
+  color: var(--oc-danger);
+}
+
+/* 添加步骤：整宽虚线按钮 */
+.h5-add-step-btn {
+  width: 100%;
+  padding: 9px 0;
+  font-size: var(--oc-text-sm);
+  color: var(--oc-blue-600);
+  background: none;
+  border: 1px dashed var(--oc-gray-300);
+  border-radius: var(--oc-radius);
   cursor: pointer;
 }
 
-.h5-add-step-btn {
-  width: 100%;
-  padding: 8px 0;
-  font-size: 13px;
-  color: var(--oc-primary-dark, #1a5fb4);
-  background: none;
-  border: 1px dashed var(--oc-primary-dark, #1a5fb4);
-  border-radius: 6px;
-  cursor: pointer;
+.h5-add-step-btn:active {
+  background: var(--oc-blue-50);
+  border-color: var(--oc-blue-400);
 }
 
 .h5-upload-list {
@@ -1319,8 +1644,9 @@ export default {
   position: relative;
   width: 70px;
   height: 70px;
-  border-radius: 6px;
+  border-radius: var(--oc-radius);
   overflow: hidden;
+  border: 1px solid var(--oc-border-light);
 }
 
 .h5-upload-item img {
@@ -1335,7 +1661,7 @@ export default {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(15, 23, 42, 0.4);
   color: #fff;
   display: flex;
   align-items: center;
@@ -1349,7 +1675,7 @@ export default {
   right: 2px;
   width: 18px;
   height: 18px;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(15, 23, 42, 0.5);
   border: none;
   border-radius: 50%;
   color: #fff;
@@ -1363,67 +1689,91 @@ export default {
 .h5-upload-add {
   width: 70px;
   height: 70px;
-  border: 1px dashed var(--oc-border, #d0d5dd);
-  border-radius: 6px;
+  border: 1px dashed var(--oc-gray-300);
+  border-radius: var(--oc-radius);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24px;
-  color: var(--oc-text-light, #999);
-  background: var(--oc-bg-soft, #fafbfc);
+  font-size: var(--oc-text-xs);
+  color: var(--oc-gray-400);
+  background: var(--oc-gray-50);
   cursor: pointer;
+}
+
+.h5-upload-add:active {
+  background: var(--oc-blue-50);
+  border-color: var(--oc-blue-400);
+  color: var(--oc-blue-600);
 }
 
 .h5-upload-add-file {
   width: 100%;
-  height: 40px;
-  font-size: 14px;
+  height: 42px;
+  font-size: var(--oc-text-md);
+  margin-top: 8px;
 }
 
 .h5-file-list {
-  margin-bottom: 8px;
+  margin-bottom: 4px;
 }
 
 .h5-file-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 10px;
-  background: var(--oc-bg-soft, #fafbfc);
-  border-radius: 6px;
-  margin-bottom: 6px;
-  font-size: 13px;
-  color: #333;
+  padding: 10px 12px;
+  background: var(--oc-bg-white);
+  border: 1px solid var(--oc-border-light);
+  border-radius: var(--oc-radius);
+  margin-bottom: 8px;
+  font-size: var(--oc-text-sm);
+  color: var(--oc-gray-700);
 }
 
-/* 按钮统一渐变蓝风格 */
+.h5-file-item .h5-upload-del {
+  position: static;
+  background: none;
+  color: var(--oc-gray-400);
+  font-size: 16px;
+  width: auto;
+  height: auto;
+}
+
+/* ===== 按钮 ===== */
 .h5-btn-cancel,
 .h5-btn-submit {
-  padding: 8px 22px;
-  font-size: 14px;
-  border-radius: 6px;
+  padding: 9px 22px;
+  font-size: var(--oc-text-md);
+  font-weight: 500;
+  border-radius: var(--oc-radius);
   cursor: pointer;
 }
 
+/* 次按钮 */
 .h5-btn-cancel {
-  color: var(--oc-primary-dark, #1a5fb4);
-  background: #fff;
-  border: 1px solid var(--oc-primary, #3584e4);
+  color: var(--oc-gray-700);
+  background: var(--oc-bg-white);
+  border: 1px solid var(--oc-gray-200);
 }
 
+/* 主按钮：实底品牌蓝 */
 .h5-btn-submit {
   color: #fff;
-  background: linear-gradient(135deg, var(--oc-primary, #3584e4), var(--oc-primary-dark, #1a5fb4));
+  background: var(--oc-blue-600);
   border: none;
+}
+
+.h5-btn-submit:active {
+  background: var(--oc-blue-700);
 }
 
 .h5-btn-primary {
   padding: 8px 22px;
-  font-size: 14px;
+  font-size: var(--oc-text-md);
   color: #fff;
-  background: linear-gradient(135deg, var(--oc-primary, #3584e4), var(--oc-primary-dark, #1a5fb4));
+  background: var(--oc-blue-600);
   border: none;
-  border-radius: 6px;
+  border-radius: var(--oc-radius);
   cursor: pointer;
 }
 </style>

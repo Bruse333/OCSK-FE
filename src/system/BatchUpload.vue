@@ -1,101 +1,137 @@
 <template>
   <div class="batch-page">
-    <!-- 页面标题 -->
+    <!-- 页面头部 -->
     <div class="page-header">
       <div class="header-left">
         <h2 class="page-title">批量上传排查记录</h2>
         <p class="page-subtitle">通过上传 Excel 文件批量导入故障排查记录，支持预览、编辑后一键提交</p>
       </div>
-      <div class="header-actions">
-        <button class="header-btn btn-add-ship" @click="addShipType">
-          <svg class="header-btn-icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
-            <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" fill="none"/>
-          </svg>
-          <span>新增船型</span>
-        </button>
-        <button class="header-btn btn-sample" @click="downloadSample" title="下载批量上传示例文件">
-          <svg class="header-btn-icon" viewBox="0 0 1024 1024" width="16" height="16" aria-hidden="true">
-            <path d="M505.7 661c8 8 18.8 12.3 29.7 12.3 10.9 0 21.7-4.1 29.7-12.3l261.9-261.9c16.4-16.4 16.4-43 0-59.4-16.4-16.4-43-16.4-59.4 0L568 475.6V128c0-23.2-18.8-42-42-42s-42 18.8-42 42v347.6L327.5 339.7c-16.4-16.4-43-16.4-59.4 0-16.4 16.4-16.4 43 0 59.4L505.7 661z"/>
-            <path d="M896 768H128c-23.2 0-42 18.8-42 42s18.8 42 42 42h768c23.2 0 42-18.8 42-42s-18.8-42-42-42z"/>
-          </svg>
-          <span>下载示例文件</span>
-        </button>
+      <!-- 无数据时，示例下载/新增船型入口保留在页头 -->
+      <div class="header-actions" v-if="tableData.length === 0">
+        <el-button text type="primary" @click="downloadSample">下载示例文件</el-button>
+        <el-button :icon="Plus" @click="addShipType">新增船型</el-button>
       </div>
     </div>
 
-    <!-- 数据表格（仅有数据时展示） -->
+    <!-- 数据区（仅有数据时展示） -->
     <div class="table-card" v-if="tableData.length > 0">
-      <!-- 工具栏 -->
-      <div class="table-toolbar">
-        <span class="record-count">
-          共 <strong>{{ tableData.length }}</strong> 条数据
-          <span v-if="unmatchedCount > 0" class="unmatched-tip">
-            （{{ unmatchedCount }} 条未匹配）
-          </span>
-        </span>
-        <div class="toolbar-actions">
-          <el-button @click="clearData" type="danger" plain size="small">
-            清空数据
-          </el-button>
-          <el-button type="primary" @click="handleUpload" :loading="isUploading" size="small">
+      <!-- 顶部统计条 -->
+      <div class="stats-bar">
+        <div class="stats-group">
+          <div class="stat-item">
+            <span class="stat-num">{{ tableData.length }}</span>
+            <span class="stat-label">总条数</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-num stat-success">{{ matchedCount }}</span>
+            <span class="stat-label">已匹配</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-num stat-warning">{{ unmatchedCount }}</span>
+            <span class="stat-label">未匹配</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-num stat-gray">{{ pendingCount }}</span>
+            <span class="stat-label">待传附件</span>
+          </div>
+        </div>
+        <div class="stats-actions">
+          <el-button text type="primary" @click="downloadSample">下载示例文件</el-button>
+          <el-button :icon="Plus" @click="addShipType">新增船型</el-button>
+          <el-button type="danger" plain @click="clearData">清空数据</el-button>
+          <el-button type="primary" @click="handleUpload" :loading="isUploading">
             {{ isUploading ? '上传中...' : '确认上传' }}
           </el-button>
         </div>
       </div>
 
+      <!-- 筛选 Tab -->
+      <div class="filter-tabs">
+        <button class="filter-tab" :class="{ active: filterTab === 'all' }" @click="setFilterTab('all')">
+          全部 ({{ tableData.length }})
+        </button>
+        <button class="filter-tab" :class="{ active: filterTab === 'unmatched' }" @click="setFilterTab('unmatched')">
+          仅看未匹配 ({{ unmatchedCount }})
+        </button>
+        <button class="filter-tab" :class="{ active: filterTab === 'matched' }" @click="setFilterTab('matched')">
+          仅看已匹配 ({{ matchedCount }})
+        </button>
+      </div>
+
       <!-- 可编辑表格 -->
-      <el-table :data="pagedData" border class="batch-table" size="small" style="width: 100%">
+      <el-table :data="pagedData" class="batch-table" size="small" style="width: 100%">
         <el-table-column label="序号" type="index" width="55" align="center" fixed :index="(i) => (currentPage - 1) * pageSize + i + 1" />
 
         <!-- 船型 -->
-        <el-table-column label="船型" width="160">
+        <el-table-column label="船型" width="170">
           <template #default="{ row }">
-            <el-select
-              v-model="row.shipId"
-              :placeholder="row.shipName ? `未匹配: ${row.shipName}` : '选择船型'"
-              filterable
-              :class="{ 'select-error': !row.shipId }"
-              size="small"
-              style="width: 100%"
-            >
-              <el-option
-                v-for="ship in shipList"
-                :key="ship.id"
-                :label="ship.name"
-                :value="ship.id"
-              />
-            </el-select>
+            <div class="ship-cell">
+              <span class="ship-warn-icon" v-if="!row.shipId" title="船型未匹配">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                  <line x1="12" y1="9" x2="12" y2="13"/>
+                  <line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+              </span>
+              <el-select
+                v-model="row.shipId"
+                :placeholder="row.shipName ? `未匹配: ${row.shipName}` : '选择船型'"
+                filterable
+                :class="{ 'select-warning': !row.shipId }"
+                size="small"
+                style="width: 100%"
+              >
+                <el-option
+                  v-for="ship in shipList"
+                  :key="ship.id"
+                  :label="ship.name"
+                  :value="ship.id"
+                />
+              </el-select>
+            </div>
           </template>
         </el-table-column>
 
         <!-- 故障现象 -->
         <el-table-column label="故障现象" min-width="180">
-          <template #default="{ row }">
-            <el-input
-              v-model="row.phenomenon"
-              type="textarea"
-              :autosize="{ minRows: 2, maxRows: 4 }"
-              placeholder="故障现象"
-              size="small"
-            />
+          <template #default="{ row, $index }">
+            <div class="text-cell">
+              <el-input
+                v-model="row.phenomenon"
+                placeholder="故障现象"
+                size="small"
+                class="cell-input"
+              />
+              <button class="cell-expand" title="展开编辑" @click="openCellEdit($index, 'phenomenon')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
+                </svg>
+              </button>
+            </div>
           </template>
         </el-table-column>
 
         <!-- 排查步骤 -->
         <el-table-column label="排查步骤" min-width="220">
-          <template #default="{ row }">
-            <el-input
-              v-model="row.shooting"
-              type="textarea"
-              :autosize="{ minRows: 2, maxRows: 4 }"
-              placeholder="排查步骤（多步骤用 ; 分隔）"
-              size="small"
-            />
+          <template #default="{ row, $index }">
+            <div class="text-cell">
+              <el-input
+                v-model="row.shooting"
+                placeholder="排查步骤（多步骤用 ; 分隔）"
+                size="small"
+                class="cell-input"
+              />
+              <button class="cell-expand" title="展开编辑" @click="openCellEdit($index, 'shooting')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
+                </svg>
+              </button>
+            </div>
           </template>
         </el-table-column>
 
         <!-- 照片 -->
-        <el-table-column label="照片" width="190">
+        <el-table-column label="照片" width="150">
           <template #default="{ row, $index }">
             <div class="photo-cell">
               <div v-for="(photo, i) in row.photos" :key="i" class="photo-thumb">
@@ -114,7 +150,7 @@
                 multiple
                 class="photo-add-upload"
               >
-                <div class="add-btn photo-add-btn">+ 添加</div>
+                <div class="add-tile">+</div>
               </el-upload>
               <span v-else class="limit-tip">已达上限</span>
             </div>
@@ -122,11 +158,16 @@
         </el-table-column>
 
         <!-- 文件 -->
-        <el-table-column label="文件" width="170">
+        <el-table-column label="文件" width="140">
           <template #default="{ row, $index }">
             <div class="file-cell">
               <div v-for="(doc, i) in row.docs" :key="i" class="file-tag">
-                <span class="file-tag-icon">📎</span>
+                <span class="file-tag-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                  </svg>
+                </span>
                 <span class="file-tag-name">文件{{ i + 1 }}</span>
                 <span v-if="doc.uploading" class="file-uploading">
                   <span class="loading-spinner small"></span>
@@ -141,7 +182,7 @@
                 multiple
                 class="file-add-upload"
               >
-                <div class="add-btn file-add-btn">+ 添加</div>
+                <div class="add-tile">+</div>
               </el-upload>
             </div>
           </template>
@@ -150,9 +191,7 @@
         <!-- 操作 -->
         <el-table-column label="操作" width="70" align="center" fixed="right">
           <template #default="{ $index }">
-            <el-button type="danger" text size="small" @click="removeRow(getRowIndex($index))">
-              删除
-            </el-button>
+            <button class="row-delete-btn" @click="removeRow(getRowIndex($index))">删除</button>
           </template>
         </el-table-column>
       </el-table>
@@ -163,7 +202,7 @@
           v-model:current-page="currentPage"
           v-model:page-size="pageSize"
           :page-sizes="[10, 20, 50, 100]"
-          :total="tableData.length"
+          :total="filteredData.length"
           layout="total, sizes, prev, pager, next"
           background
           small
@@ -183,7 +222,16 @@
         :disabled="isParsing"
       >
         <div class="uploader-content" :class="{ parsing: isParsing }">
-          <div class="upload-icon">{{ isParsing ? '⏳' : '📊' }}</div>
+          <div class="upload-icon">
+            <span v-if="isParsing" class="parsing-spinner"></span>
+            <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <rect x="3" y="3" width="18" height="18" rx="2"/>
+              <line x1="3" y1="9" x2="21" y2="9"/>
+              <line x1="3" y1="15" x2="21" y2="15"/>
+              <line x1="9" y1="9" x2="9" y2="21"/>
+              <line x1="15" y1="9" x2="15" y2="21"/>
+            </svg>
+          </div>
           <div class="upload-text">
             {{ isParsing ? '正在解析...' : '将 Excel 文件拖到此处，或' }}<em v-if="!isParsing">点击上传</em>
           </div>
@@ -194,6 +242,26 @@
         </div>
       </el-upload>
     </div>
+
+    <!-- 单元格展开编辑弹窗 -->
+    <el-dialog
+      v-model="cellEditVisible"
+      :title="cellEditField === 'phenomenon' ? '编辑故障现象' : '编辑排查步骤'"
+      width="600px"
+      :close-on-click-modal="false"
+      append-to-body
+    >
+      <el-input
+        v-model="cellEditValue"
+        type="textarea"
+        :rows="8"
+        :placeholder="cellEditField === 'phenomenon' ? '请描述故障现象' : '排查步骤（多步骤用 ; 分隔）'"
+      />
+      <template #footer>
+        <el-button @click="cellEditVisible = false">取消</el-button>
+        <el-button type="primary" @click="applyCellEdit">确定</el-button>
+      </template>
+    </el-dialog>
 
     <!-- 新增船型弹窗 -->
     <el-dialog v-model="shipTypeDialogVisible" title="新增船型" width="400px" :close-on-click-modal="false" append-to-body>
@@ -264,7 +332,9 @@
 </template>
 
 <script>
+import { markRaw } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Plus } from '@element-plus/icons-vue'
 import request from '@/utils/request'
 import { getPrivilege } from '@/utils/token'
 import { deleteFiles } from '@/utils/file'
@@ -281,22 +351,43 @@ export default {
       privilege: 1,
       currentPage: 1,
       pageSize: 10,
+      // 筛选 Tab：all / unmatched / matched
+      filterTab: 'all',
+      // 单元格展开编辑弹窗
+      cellEditVisible: false,
+      cellEditRowIndex: -1,
+      cellEditField: '',
+      cellEditValue: '',
       shipTypeDialogVisible: false,
       newShipName: '',
       addShipSubmitting: false,
       unmatchedShipsDialogVisible: false,
       unmatchedShips: [],
       batchAddShipsSubmitting: false,
-      batchAddProgress: -1
+      batchAddProgress: -1,
+      Plus: markRaw(Plus)
     }
   },
   computed: {
     unmatchedCount() {
       return this.tableData.filter(r => !r.shipId).length
     },
+    matchedCount() {
+      return this.tableData.filter(r => r.shipId).length
+    },
+    pendingCount() {
+      return this.tableData.reduce((n, r) => {
+        return n + r.photos.filter(p => p.uploading).length + r.docs.filter(d => d.uploading).length
+      }, 0)
+    },
+    filteredData() {
+      if (this.filterTab === 'matched') return this.tableData.filter(r => r.shipId)
+      if (this.filterTab === 'unmatched') return this.tableData.filter(r => !r.shipId)
+      return this.tableData
+    },
     pagedData() {
       const start = (this.currentPage - 1) * this.pageSize
-      return this.tableData.slice(start, start + this.pageSize)
+      return this.filteredData.slice(start, start + this.pageSize)
     }
   },
   created() {
@@ -325,6 +416,28 @@ export default {
       }).catch(() => {
         ElMessage.error('获取船型列表失败！')
       })
+    },
+
+    // ====== 筛选 Tab ======
+    setFilterTab(tab) {
+      this.filterTab = tab
+      this.currentPage = 1
+    },
+
+    // ====== 单元格展开编辑 ======
+    openCellEdit(pageIndex, field) {
+      const rowIndex = this.getRowIndex(pageIndex)
+      if (rowIndex < 0) return
+      this.cellEditRowIndex = rowIndex
+      this.cellEditField = field
+      this.cellEditValue = this.tableData[rowIndex][field]
+      this.cellEditVisible = true
+    },
+    applyCellEdit() {
+      if (this.cellEditRowIndex > -1 && this.cellEditField) {
+        this.tableData[this.cellEditRowIndex][this.cellEditField] = this.cellEditValue
+      }
+      this.cellEditVisible = false
     },
 
     // ====== Excel 文件处理 ======
@@ -391,8 +504,9 @@ export default {
           }
         })
 
-        // 重置到第一页
+        // 重置到第一页、重置筛选
         this.currentPage = 1
+        this.filterTab = 'all'
         // 上传从 Excel 提取的内嵌图片到服务端获取 OSS 链接
         this.uploadExtractedPhotos()
 
@@ -650,9 +764,10 @@ export default {
       this.tableData[rowIndex].docs.splice(docIndex, 1)
     },
 
-    // 页内索引转全局索引
+    // 页内索引转 tableData 全局索引（经筛选视图映射，保证编辑/删除作用于正确的行）
     getRowIndex(pageIndex) {
-      return (this.currentPage - 1) * this.pageSize + pageIndex
+      const row = this.pagedData[pageIndex]
+      return row ? this.tableData.indexOf(row) : -1
     },
 
     removeRow(rowIndex) {
@@ -674,7 +789,7 @@ export default {
         })
         this.tableData.splice(rowIndex, 1)
         // 删除后若当前页无数据则回退一页
-        const totalPages = Math.ceil(this.tableData.length / this.pageSize)
+        const totalPages = Math.ceil(this.filteredData.length / this.pageSize)
         if (this.currentPage > totalPages && totalPages > 0) {
           this.currentPage = totalPages
         }
@@ -902,10 +1017,11 @@ export default {
 
 <style scoped>
 .batch-page {
-  max-width: 1200px;
+  max-width: 1600px;
   margin: 0 auto;
 }
 
+/* 页面头部 */
 .page-header {
   display: flex;
   justify-content: space-between;
@@ -921,85 +1037,376 @@ export default {
 
 .page-title {
   margin: 0;
-  font-size: 20px;
+  font-size: var(--oc-text-2xl);
   font-weight: 600;
-  color: #1a3a6e;
+  color: var(--oc-gray-900);
 }
 
 .page-subtitle {
   margin: 6px 0 0;
-  font-size: 13px;
-  color: #999;
+  font-size: var(--oc-text-sm);
+  color: var(--oc-gray-400);
 }
 
-/* 头部操作按钮组 */
 .header-actions {
   display: flex;
-  gap: 10px;
+  align-items: center;
+  gap: 8px;
   flex-shrink: 0;
 }
 
-.header-btn {
-  display: inline-flex;
+/* ===== 顶部统计条 ===== */
+.table-card {
+  background: var(--oc-bg-white);
+  border: var(--oc-card-border);
+  border-radius: var(--oc-radius-md);
+  padding: 16px 20px 20px;
+  box-shadow: var(--oc-shadow-sm);
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.stats-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.stats-group {
+  display: flex;
+  gap: 24px;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stat-num {
+  font-size: var(--oc-text-3xl);
+  font-weight: 700;
+  color: var(--oc-gray-900);
+  line-height: 1.2;
+  font-feature-settings: "tnum";
+}
+
+.stat-num.stat-success { color: var(--oc-success); }
+.stat-num.stat-warning { color: var(--oc-warning); }
+.stat-num.stat-gray { color: var(--oc-gray-400); }
+
+.stat-label {
+  font-size: var(--oc-text-xs);
+  color: var(--oc-gray-400);
+}
+
+.stats-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ===== 筛选 Tab ===== */
+.filter-tabs {
+  display: flex;
+  gap: 20px;
+  margin: 14px 0 12px;
+  border-bottom: 1px solid var(--oc-gray-200);
+}
+
+.filter-tab {
+  padding: 8px 2px;
+  font-size: var(--oc-text-md);
+  color: var(--oc-gray-500);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  cursor: pointer;
+  transition: color 0.2s ease, border-color 0.2s ease;
+  font-feature-settings: "tnum";
+}
+
+.filter-tab:hover {
+  color: var(--oc-blue-600);
+}
+
+.filter-tab.active {
+  color: var(--oc-blue-600);
+  font-weight: 600;
+  border-bottom-color: var(--oc-blue-600);
+}
+
+/* ===== 表格 ===== */
+.batch-table :deep(.el-table__body .el-input__wrapper),
+.batch-table :deep(.el-table__body .el-textarea__inner) {
+  background: var(--oc-bg-white);
+  border-radius: var(--oc-radius-sm);
+}
+
+/* 船型未匹配：橙色边框 + 警告图标 */
+.ship-cell {
+  display: flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 16px;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.25s;
-  white-space: nowrap;
-  flex-shrink: 0;
 }
 
-.header-btn-icon {
+.ship-warn-icon {
+  width: 14px;
+  height: 14px;
+  color: var(--oc-warning);
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
 }
 
-/* 新增船型按钮（主操作-实心渐变） */
-.btn-add-ship {
+.ship-warn-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.select-warning :deep(.el-select__wrapper) {
+  box-shadow: 0 0 0 1px var(--oc-warning) inset;
+}
+
+.select-warning :deep(.el-select__placeholder),
+.select-warning :deep(.el-select__selected-item) {
+  color: var(--oc-gray-700);
+}
+
+/* 文本单元格：单行 input + 展开按钮 */
+.text-cell {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cell-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.cell-expand {
+  width: 24px;
+  height: 24px;
+  padding: 0;
   border: none;
-  background: linear-gradient(135deg, #3584e4, #1a5fb4);
+  background: transparent;
+  color: var(--oc-gray-400);
+  cursor: pointer;
+  border-radius: var(--oc-radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.cell-expand:hover {
+  color: var(--oc-blue-600);
+  background: var(--oc-blue-50);
+}
+
+.cell-expand svg {
+  width: 13px;
+  height: 13px;
+}
+
+/* 照片单元格：28px 缩略图 + 虚线小方框 */
+.photo-cell {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  padding: 4px 0;
+}
+
+.photo-thumb {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--oc-radius-sm);
+  overflow: hidden;
+  border: 1px solid var(--oc-border-light);
+  flex-shrink: 0;
+}
+
+.photo-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.thumb-uploading {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* loading 旋转图标 */
+.loading-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.loading-spinner.small {
+  width: 12px;
+  height: 12px;
+  border-width: 1.5px;
+  border-color: rgba(245, 158, 11, 0.3);
+  border-top-color: var(--oc-warning);
+  vertical-align: middle;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.thumb-remove {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 14px;
+  height: 14px;
+  background: rgba(239, 68, 68, 0.9);
   color: #fff;
-  box-shadow: 0 2px 8px rgba(53, 132, 228, 0.3);
+  border-radius: 0 0 0 6px;
+  font-size: 10px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 1;
 }
 
-.btn-add-ship:hover {
-  background: linear-gradient(135deg, #1a5fb4, #14478a);
-  box-shadow: 0 4px 14px rgba(53, 132, 228, 0.45);
-  transform: translateY(-1px);
+.photo-add-upload :deep(.el-upload) {
+  display: block;
 }
 
-.btn-add-ship:active {
-  transform: translateY(0);
+/* 虚线小方框添加按钮 */
+.add-tile {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  color: var(--oc-gray-400);
+  cursor: pointer;
+  background: var(--oc-gray-50);
+  border: 1px dashed var(--oc-gray-300);
+  border-radius: var(--oc-radius-sm);
+  transition: all 0.2s ease;
 }
 
-/* 下载示例文件按钮（次操作-描边） */
-.btn-sample {
-  border: 1px solid #3584e4;
-  background: #f0f7ff;
-  color: #1a5fb4;
-  box-shadow: 0 2px 6px rgba(53, 132, 228, 0.12);
+.add-tile:hover {
+  color: var(--oc-blue-600);
+  border-color: var(--oc-blue-400);
+  background: var(--oc-blue-50);
 }
 
-.btn-sample:hover {
-  background: #3584e4;
-  color: #fff;
-  box-shadow: 0 4px 12px rgba(53, 132, 228, 0.3);
+.limit-tip {
+  font-size: 11px;
+  color: var(--oc-gray-300);
 }
 
-.btn-sample:active {
-  transform: translateY(1px);
+/* 文件单元格 */
+.file-cell {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  padding: 4px 0;
 }
 
-/* Excel 上传区 */
+.file-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  background: var(--oc-blue-50);
+  border-radius: var(--oc-radius-sm);
+  font-size: var(--oc-text-xs);
+  color: var(--oc-blue-700);
+}
+
+.file-tag-icon {
+  width: 13px;
+  height: 13px;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.file-tag-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.file-uploading {
+  color: var(--oc-warning);
+  display: inline-flex;
+  align-items: center;
+}
+
+.file-remove {
+  cursor: pointer;
+  color: var(--oc-gray-400);
+  font-size: 13px;
+  line-height: 1;
+}
+
+.file-remove:hover {
+  color: var(--oc-danger);
+}
+
+.file-add-upload :deep(.el-upload) {
+  display: block;
+}
+
+/* 行删除：灰色文字按钮，hover 变红 */
+.row-delete-btn {
+  padding: 4px 6px;
+  font-size: var(--oc-text-sm);
+  color: var(--oc-gray-500);
+  background: none;
+  border: none;
+  border-radius: var(--oc-radius-sm);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.row-delete-btn:hover {
+  color: var(--oc-danger);
+  background: var(--oc-danger-bg);
+}
+
+/* 分页条 */
+.pagination-wrapper {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+/* ===== Excel 上传区 ===== */
 .upload-card {
-  background: #fff;
-  border-radius: 10px;
+  background: var(--oc-bg-white);
+  border: var(--oc-card-border);
+  border-radius: var(--oc-radius-md);
   padding: 24px;
-  margin-bottom: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--oc-shadow-sm);
 }
 
 .excel-uploader {
@@ -1012,21 +1419,21 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-color: #d0d5dd;
-  border-radius: 10px;
-  background: #fafbfc;
-  transition: all 0.3s;
+  border: 1.5px dashed var(--oc-gray-300);
+  border-radius: var(--oc-radius-md);
+  background: var(--oc-gray-50);
+  transition: all 0.2s ease;
   padding: 0 20px;
 }
 
 .excel-uploader :deep(.el-upload-dragger:hover) {
-  border-color: #3584e4;
-  background: #f0f7ff;
+  border-color: var(--oc-blue-400);
+  background: var(--oc-blue-50);
 }
 
 .excel-uploader :deep(.el-upload-dragger.is-dragover) {
-  border-color: #3584e4;
-  background: #e8f4ff;
+  border-color: var(--oc-blue-600);
+  background: var(--oc-blue-50);
 }
 
 .uploader-content {
@@ -1040,281 +1447,61 @@ export default {
 }
 
 .upload-icon {
-  font-size: 48px;
-  margin-bottom: 8px;
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 8px;
+  color: var(--oc-gray-400);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.upload-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.parsing-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--oc-gray-200);
+  border-top-color: var(--oc-blue-600);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
 }
 
 .upload-text {
   font-size: 15px;
-  color: #1a3a6e;
+  color: var(--oc-gray-700);
   margin-bottom: 4px;
 }
 
 .upload-text em {
-  color: #3584e4;
+  color: var(--oc-blue-600);
   font-style: normal;
   font-weight: 500;
 }
 
 .upload-hint {
-  font-size: 12px;
-  color: #999;
+  font-size: var(--oc-text-xs);
+  color: var(--oc-gray-400);
   margin-top: 2px;
 }
 
 .format-hint {
   margin-top: 4px;
-  color: #b0b0b0;
+  color: var(--oc-gray-300);
 }
 
-/* 表格卡片 */
-.table-card {
-  background: #fff;
-  border-radius: 10px;
-  padding: 20px 24px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  overflow: hidden;
-}
-
-.table-toolbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.record-count {
-  font-size: 14px;
-  color: #1a3a6e;
-}
-
-.record-count strong {
-  color: #3584e4;
-  font-size: 16px;
-}
-
-.unmatched-tip {
-  color: #ff9900;
-  font-size: 12px;
-}
-
-.toolbar-actions {
-  display: flex;
-  gap: 12px;
-}
-
-/* 表格样式 */
-.batch-table :deep(.el-table__header th) {
-  background: #f0f5ff;
-  color: #1a3a6e;
-  font-weight: 600;
-  font-size: 13px;
-}
-
-.batch-table :deep(.el-table__body .el-input__wrapper),
-.batch-table :deep(.el-table__body .el-textarea__inner) {
-  background: #fafbfc;
-  border-radius: 4px;
-}
-
-.batch-table :deep(.el-table__body .el-input__wrapper.is-focus),
-.batch-table :deep(.el-table__body .el-textarea__inner:focus) {
-  background: #fff;
-}
-
-.select-error :deep(.el-select__wrapper) {
-  box-shadow: 0 0 0 1px #ed4014 inset;
-}
-
-/* 照片单元格 */
-.photo-cell {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  align-items: center;
-  padding: 4px 0;
-}
-
-.photo-thumb {
-  position: relative;
-  width: 50px;
-  height: 50px;
-  border-radius: 6px;
-  overflow: hidden;
-  border: 1px solid #e8ecf0;
-  flex-shrink: 0;
-}
-
-.photo-thumb img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.thumb-uploading {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.4);
-  color: #fff;
-  font-size: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* loading 旋转图标 */
-.loading-spinner {
-  display: inline-block;
-  width: 16px;
-  height: 16px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top-color: #fff;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-.loading-spinner.small {
-  width: 12px;
-  height: 12px;
-  border-width: 1.5px;
-  border-color: rgba(255, 144, 0, 0.3);
-  border-top-color: #ff9900;
-  vertical-align: middle;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.thumb-remove {
-  position: absolute;
-  top: 1px;
-  right: 1px;
-  width: 16px;
-  height: 16px;
-  background: rgba(237, 64, 20, 0.9);
-  color: #fff;
-  border-radius: 50%;
-  font-size: 10px;
-  line-height: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  z-index: 1;
-}
-
-.thumb-remove:hover {
-  background: rgba(237, 64, 20, 1);
-}
-
-.photo-add-upload :deep(.el-upload) {
-  display: block;
-}
-
-.photo-add-btn {
-  width: 50px;
-  height: 50px;
-}
-
-.limit-tip {
-  font-size: 11px;
-  color: #ccc;
-}
-
-/* 添加按钮 */
-.add-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  color: #3584e4;
-  cursor: pointer;
-  transition: all 0.2s;
-  background: #f0f7ff;
-  border: 1px dashed #3584e4;
-  border-radius: 6px;
-  gap: 2px;
-}
-
-.add-btn:hover {
-  background: #e8f4ff;
-  border-color: #1a5fb4;
-  color: #1a5fb4;
-}
-
-/* 文件单元格 */
-.file-cell {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 4px 0;
-}
-
-.file-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 8px;
-  background: #f0f5ff;
-  border: 1px solid #d0dff0;
-  border-radius: 4px;
-  font-size: 12px;
-  color: #1a5fb4;
-  width: fit-content;
-}
-
-.file-tag-icon {
-  font-size: 14px;
-}
-
-.file-uploading {
-  color: #ff9900;
-  font-size: 11px;
-}
-
-.file-remove {
-  cursor: pointer;
-  color: #ed4014;
-  font-size: 14px;
-  font-weight: bold;
-  line-height: 1;
-  margin-left: 2px;
-}
-
-.file-add-upload :deep(.el-upload) {
-  display: inline-block;
-}
-
-.file-add-btn {
-  width: auto;
-  height: 28px;
-  padding: 0 12px;
-}
-
-/* 分页条 */
-.pagination-wrapper {
-  display: flex;
-  justify-content: center;
-  margin-top: 16px;
-}
-
-/* 未匹配船型弹窗 */
+/* ===== 未匹配船型弹窗 ===== */
 .unmatched-ships-header {
   margin-bottom: 16px;
 }
 
 .unmatched-ships-tip {
   margin: 0 0 12px 0;
-  font-size: 14px;
-  color: #666;
+  font-size: var(--oc-text-md);
+  color: var(--oc-gray-700);
   line-height: 1.6;
 }
 
@@ -1322,17 +1509,18 @@ export default {
   max-height: 300px;
   overflow-y: auto;
   padding: 12px;
-  background: #f5f7fa;
-  border-radius: 6px;
+  background: var(--oc-gray-50);
+  border-radius: var(--oc-radius);
 }
 
 .unmatched-ship-item {
   display: flex;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
   padding: 8px 12px;
-  background: #fff;
-  border-radius: 4px;
-  transition: all 0.2s;
+  background: var(--oc-bg-white);
+  border: 1px solid var(--oc-border-light);
+  border-radius: var(--oc-radius-sm);
+  transition: all 0.2s ease;
 }
 
 .unmatched-ship-item:last-child {
@@ -1340,21 +1528,21 @@ export default {
 }
 
 .unmatched-ship-item:hover {
-  background: #f0f7ff;
+  background: var(--oc-blue-50);
 }
 
 /* 批量添加进度条 */
 .batch-progress-wrapper {
   margin-top: 16px;
   padding: 12px 16px;
-  background: #f0f7ff;
-  border-radius: 6px;
+  background: var(--oc-blue-50);
+  border-radius: var(--oc-radius);
 }
 
 .batch-progress-text {
   margin: 8px 0 0 0;
-  font-size: 13px;
-  color: #1a5fb4;
+  font-size: var(--oc-text-sm);
+  color: var(--oc-blue-700);
   text-align: center;
 }
 </style>

@@ -1,13 +1,49 @@
 <template>
-  <div class="system-wrapper">
+  <div class="system-wrapper" :class="'theme-' + theme">
     <!-- 侧边栏 -->
     <aside class="sidebar" :class="{ collapsed: isCollapsed }">
-      <div class="sidebar-header">
-        <span class="sidebar-logo" v-if="!isCollapsed">OCSKILL</span>
-        <span class="sidebar-logo-mini" v-else>OC</span>
+      <!-- 空白区星星点缀 -->
+      <div class="sidebar-decor" aria-hidden="true">
+        <span class="sb-star s1"></span>
+        <span class="sb-star s2"></span>
+        <span class="sb-star s3"></span>
+        <span class="sb-star s4"></span>
+        <span class="sb-star s5"></span>
+        <span class="sb-star s6"></span>
+        <span class="sb-star s7"></span>
+        <span class="sb-star s8"></span>
       </div>
+      <!-- Logo 区 -->
+      <div class="sidebar-header">
+        <span class="brand-mark">OC</span>
+        <div class="brand-text" v-if="!isCollapsed">
+          <span class="brand-name">OCSKILL</span>
+          <span class="brand-sub">TECH KNOWLEDGE</span>
+        </div>
+        <!-- 时段图标：太阳（昼）/ 黄昏太阳（傍晚）/ 弯月（夜） -->
+        <svg v-if="!isCollapsed && greetingIcon === 'sun'" class="sidebar-greet-icon icon-sun" viewBox="0 0 24 24" fill="none">
+          <g class="rays" stroke="#F59E0B" stroke-width="2" stroke-linecap="round">
+            <path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/>
+          </g>
+          <circle cx="12" cy="12" r="4.5" fill="#FBBF24"/>
+        </svg>
+        <svg v-else-if="!isCollapsed && greetingIcon === 'sunset'" class="sidebar-greet-icon icon-sunset" viewBox="0 0 24 24" fill="none">
+          <g stroke="#FDBA74" stroke-width="2" stroke-linecap="round">
+            <path d="M12 3.5v2M5.2 7.2l1.5 1.5M18.8 7.2l-1.5 1.5"/>
+          </g>
+          <path d="M7 16a5 5 0 0 1 10 0Z" fill="#FB923C"/>
+          <path d="M3 16h18" stroke="#FDBA74" stroke-width="2" stroke-linecap="round"/>
+          <path d="M7 20h10" stroke="#FDBA74" stroke-width="1.6" stroke-linecap="round" opacity=".6"/>
+        </svg>
+        <svg v-else-if="!isCollapsed" class="sidebar-greet-icon icon-moon" viewBox="0 0 24 24" fill="none">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z" fill="#FDE68A"/>
+          <circle cx="17.5" cy="5" r="1" fill="#FDE68A" opacity=".85"/>
+        </svg>
+      </div>
+
+      <!-- 菜单 -->
       <nav class="sidebar-menu">
-        <template v-for="(item, index) in visibleMenuItems" :key="item.path || item.label">
+        <template v-for="item in visibleMenuItems" :key="item.path || item.label">
           <!-- 无子菜单 -->
           <div
             v-if="!item.children"
@@ -19,34 +55,37 @@
             <span class="menu-text" v-if="!isCollapsed">{{ item.label }}</span>
           </div>
 
-          <!-- 有子菜单 -->
+          <!-- 分组（系统管理） -->
           <div v-else class="menu-group">
+            <div class="menu-group-title" v-if="!isCollapsed">{{ item.label }}</div>
             <div
-              class="menu-item menu-item-parent"
-              :class="{ active: isChildActive(item) }"
-              @click="handleParentClick(item, index)"
+              v-for="child in item.children"
+              :key="child.path"
+              class="menu-item"
+              :class="{ active: currentPath === child.path }"
+              @click="navigateTo(child.path)"
             >
-              <span class="menu-icon" v-html="item.icon"></span>
-              <span class="menu-text" v-if="!isCollapsed">{{ item.label }}</span>
-              <span v-if="!isCollapsed" class="menu-arrow" :class="{ up: isExpanded(index) }">&#9662;</span>
-            </div>
-            <div v-show="!isCollapsed && isExpanded(index)" class="sub-menu">
-              <div
-                v-for="child in item.children"
-                :key="child.path"
-                class="menu-item menu-item-child"
-                :class="{ active: currentPath === child.path }"
-                @click="navigateTo(child.path)"
-              >
-                <span class="menu-icon" v-html="child.icon"></span>
-                <span class="menu-text">{{ child.label }}</span>
-              </div>
+              <span class="menu-icon" v-html="child.icon"></span>
+              <span class="menu-text" v-if="!isCollapsed">{{ child.label }}</span>
             </div>
           </div>
         </template>
       </nav>
-      <div class="sidebar-footer" v-if="!isCollapsed">
-        <el-button plain class="btn-back-home" @click="backToHome">返回首页</el-button>
+
+      <!-- 底部区：返回首页 + 收起 -->
+      <div class="sidebar-footer">
+        <div class="menu-item footer-item" @click="backToHome">
+          <span class="menu-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M9 21v-6h6v6"/></svg>
+          </span>
+          <span class="menu-text" v-if="!isCollapsed">返回首页</span>
+        </div>
+        <div class="menu-item footer-item" @click="toggleSidebar">
+          <span class="menu-icon collapse-icon" :class="{ reversed: isCollapsed }">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m14 18-6-6 6-6"/></svg>
+          </span>
+          <span class="menu-text" v-if="!isCollapsed">收起</span>
+        </div>
       </div>
     </aside>
 
@@ -54,14 +93,24 @@
     <div class="main-area">
       <!-- 顶部栏 -->
       <header class="top-bar">
-        <el-button class="btn-collapse" circle @click="toggleSidebar">
-          <el-icon><Menu /></el-icon>
-        </el-button>
         <h1 class="top-title">{{ pageTitle }}</h1>
-        <div class="top-right">
-          <span class="top-username">用户: [{{ username }}]</span>
-          <el-button @click="handleLogout">退出登录</el-button>
-        </div>
+        <el-dropdown trigger="click" popper-class="oc-user-dropdown" @command="handleUserCommand">
+          <div class="user-capsule">
+            <span class="user-avatar">{{ avatarLetter }}</span>
+            <span class="user-name">{{ username }}</span>
+            <el-icon class="capsule-arrow"><ArrowDown /></el-icon>
+          </div>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item command="mine">
+                <el-icon><User /></el-icon>个人中心
+              </el-dropdown-item>
+              <el-dropdown-item command="logout" divided class="dropdown-item-danger">
+                <el-icon><SwitchButton /></el-icon>退出登录
+              </el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
       </header>
 
       <!-- 内容区域 -->
@@ -72,20 +121,6 @@
           </keep-alive>
         </router-view>
       </main>
-
-      <!-- 备案信息 
-      <footer class="footer-record">
-        <p>Copyright &copy; 2026 OCSKILL技术知识查询. All Rights Reserved.</p>
-        <p>
-          <a class="record-gongan" href="http://www.beian.gov.cn/portal/registerSystemInfo?recordcode=44195402000128" target="_blank" rel="noopener noreferrer">
-            <img src="../assets/gongan.png" alt="公安备案图标" />
-            粤公网安备44195402000128号
-          </a>
-          <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">
-            粤ICP备2026082654号
-          </a>
-        </p>
-      </footer>  -->
     </div>
   </div>
 </template>
@@ -93,6 +128,7 @@
 <script>
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getUsername, getPrivilege, removeToken, removeUsername, removePrivilege } from '@/utils/token'
+import { getTimeTheme, getGreetingIcon } from '@/utils/theme'
 
 export default {
   name: 'SystemLayout',
@@ -101,7 +137,7 @@ export default {
       isCollapsed: false,
       username: '',
       privilege: 1,
-      expandedMenus: [],
+      theme: 'night',
       menuItems: [
         {
           label: '信息检索',
@@ -174,36 +210,22 @@ export default {
         return ''
       }
       return findLabel(this.visibleMenuItems) || '系统管理'
+    },
+    avatarLetter() {
+      return this.username ? this.username.trim().charAt(0).toUpperCase() : '·'
+    },
+    greetingIcon() {
+      return getGreetingIcon(this.theme)
     }
   },
   created() {
     this.username = getUsername() || ''
     this.privilege = getPrivilege()
+    this.theme = getTimeTheme()
   },
   methods: {
     toggleSidebar() {
       this.isCollapsed = !this.isCollapsed
-    },
-    isExpanded(index) {
-      return this.expandedMenus.includes(index)
-    },
-    isChildActive(item) {
-      return item.children && item.children.some(child => child.path === this.currentPath)
-    },
-    handleParentClick(item, index) {
-      if (this.isCollapsed) {
-        // 折叠状态下直接跳转第一个可见子菜单
-        if (item.children && item.children.length > 0) {
-          this.navigateTo(item.children[0].path)
-        }
-        return
-      }
-      const pos = this.expandedMenus.indexOf(index)
-      if (pos === -1) {
-        this.expandedMenus.push(index)
-      } else {
-        this.expandedMenus.splice(pos, 1)
-      }
     },
     navigateTo(path) {
       if (this.$route.path !== path) {
@@ -212,6 +234,13 @@ export default {
     },
     backToHome() {
       this.$router.push('/')
+    },
+    handleUserCommand(command) {
+      if (command === 'mine') {
+        this.navigateTo('/system/mine')
+      } else if (command === 'logout') {
+        this.handleLogout()
+      }
     },
     handleLogout() {
       ElMessageBox.confirm('确定要退出登录吗？', '退出登录', {
@@ -239,70 +268,244 @@ export default {
   overflow: hidden;
 }
 
-/* 侧边栏 */
+/* ===== 侧边栏：深海军蓝 ===== */
 .sidebar {
-  width: 220px;
-  background: linear-gradient(180deg, var(--oc-primary-lighter, #87CEEB) 0%, var(--oc-primary-light, #5FB0E6) 100%);
+  position: relative;
+  width: 240px;
+  background: var(--oc-sidebar-bg);
   display: flex;
   flex-direction: column;
-  transition: width 0.3s ease;
+  transition: width 0.2s ease;
   flex-shrink: 0;
-  box-shadow: 2px 0 12px rgba(95, 176, 230, 0.3);
+  overflow: hidden;
+}
+
+/* --- 侧边栏星星点缀（集中在菜单下方空白区，仅夜晚/傍晚显示） --- */
+.sidebar-decor {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  display: none;
+}
+
+.theme-night .sidebar-decor {
+  display: block;
+}
+
+.theme-dusk .sidebar-decor {
+  display: block;
+  opacity: 0.6;
+}
+
+.sb-star {
+  position: absolute;
+  background: #fff;
+  clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+  opacity: 0.5;
+  animation: sb-star-twinkle ease-in-out infinite;
+}
+
+.sb-star.s1 { top: 52%; left: 18%; width: 5px; height: 5px; animation-duration: 3s; }
+.sb-star.s2 { top: 58%; left: 62%; width: 8px; height: 8px; box-shadow: 0 0 8px 2px rgba(255, 255, 255, 0.35); animation-duration: 2.6s; animation-delay: 0.9s; }
+.sb-star.s3 { top: 63%; left: 38%; width: 5px; height: 5px; animation-duration: 3.6s; animation-delay: 1.8s; }
+.sb-star.s4 { top: 67%; left: 80%; width: 6px; height: 6px; animation-duration: 2.8s; animation-delay: 0.5s; }
+.sb-star.s5 { top: 72%; left: 12%; width: 6px; height: 6px; animation-duration: 3.4s; animation-delay: 2.2s; }
+.sb-star.s6 { top: 76%; left: 52%; width: 9px; height: 9px; background: var(--oc-cyan-300); box-shadow: 0 0 10px 2px rgba(6, 182, 212, 0.4); animation-duration: 3.1s; animation-delay: 1.3s; }
+.sb-star.s7 { top: 81%; left: 30%; width: 5px; height: 5px; animation-duration: 2.5s; animation-delay: 0.2s; }
+.sb-star.s8 { top: 84%; left: 70%; width: 5px; height: 5px; animation-duration: 3.8s; animation-delay: 2.6s; }
+
+@keyframes sb-star-twinkle {
+  0%, 100% {
+    opacity: 0.15;
+    transform: scale(0.85);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.1);
+  }
+}
+
+/* 尊重系统减弱动效偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .sb-star,
+  .sidebar-greet-icon,
+  .icon-sun .rays {
+    animation: none;
+  }
 }
 
 .sidebar.collapsed {
   width: 64px;
 }
 
+/* 浅色主题下侧边栏与内容区加分隔线 */
+.theme-morning .sidebar,
+.theme-day .sidebar {
+  border-right: 1px solid var(--oc-gray-200);
+}
+
+/* Logo 区 */
 .sidebar-header {
-  height: 60px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px;
+  flex-shrink: 0;
+}
+
+.sidebar.collapsed .sidebar-header {
+  justify-content: center;
+  padding: 0;
+}
+
+.brand-mark {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--oc-blue-500), var(--oc-cyan-500));
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+  flex-shrink: 0;
 }
 
-.sidebar-logo {
-  color: var(--oc-title, #1a3a6e);
-  font-size: 20px;
-  font-weight: 600;
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.brand-name {
+  color: var(--oc-sidebar-text-strong);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.brand-sub {
+  color: var(--oc-sidebar-text-sub);
+  font-size: 10px;
   letter-spacing: 2px;
+  margin-top: 2px;
 }
 
-.sidebar-logo-mini {
-  color: var(--oc-title, #1a3a6e);
-  font-size: 18px;
-  font-weight: 600;
+/* Logo 区时段图标 */
+.sidebar-greet-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  margin-left: 2px;
 }
 
+.icon-sun .rays {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: sun-spin 30s linear infinite;
+}
+
+@keyframes sun-spin {
+  to { transform: rotate(360deg); }
+}
+
+.icon-sunset {
+  animation: sunset-glow 4s ease-in-out infinite;
+}
+
+@keyframes sunset-glow {
+  0%, 100% { filter: drop-shadow(0 0 2px rgba(251, 146, 60, 0.4)); }
+  50% { filter: drop-shadow(0 0 7px rgba(251, 146, 60, 0.75)); }
+}
+
+.icon-moon {
+  animation: moon-glow 4s ease-in-out infinite;
+}
+
+@keyframes moon-glow {
+  0%, 100% { filter: drop-shadow(0 0 2px rgba(253, 230, 138, 0.35)); }
+  50% { filter: drop-shadow(0 0 7px rgba(253, 230, 138, 0.7)); }
+}
+
+/* 菜单 */
 .sidebar-menu {
   flex: 1;
-  padding: 16px 0;
+  padding: 8px;
   overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.sidebar-menu::-webkit-scrollbar {
+  width: 4px;
+}
+.sidebar-menu::-webkit-scrollbar-thumb {
+  background: var(--oc-sidebar-border);
+  border-radius: 2px;
 }
 
 .menu-item {
+  position: relative;
   display: flex;
   align-items: center;
-  padding: 0 24px;
-  height: 48px;
-  cursor: pointer;
-  color: rgba(26, 58, 110, 0.85);
-  transition: all 0.2s;
   gap: 12px;
+  height: 40px;
+  padding: 0 12px;
+  margin-bottom: 4px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--oc-sidebar-text);
+  transition: background 0.15s ease, color 0.15s ease;
+  user-select: none;
 }
 
 .menu-item:hover {
-  background: rgba(255, 255, 255, 0.25);
-  color: var(--oc-title, #1a3a6e);
+  background: var(--oc-sidebar-hover-bg);
+  color: var(--oc-sidebar-text-strong);
 }
 
 .menu-item.active {
-  background: rgba(255, 255, 255, 0.35);
-  color: var(--oc-title, #1a3a6e);
-  border-left: 3px solid var(--oc-title, #1a3a6e);
-  padding-left: 21px;
-  font-weight: 600;
+  background: var(--oc-sidebar-active-bg);
+  color: var(--oc-sidebar-text-strong);
+  font-weight: 500;
+}
+
+/* 选中态左侧 3px 高亮条 */
+.menu-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 8px;
+  bottom: 8px;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--oc-blue-400);
+}
+
+.menu-item.active .menu-icon {
+  color: var(--oc-sidebar-active-icon);
+}
+
+.menu-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.menu-icon :deep(svg) {
+  width: 18px;
+  height: 18px;
+}
+
+.menu-text {
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 .sidebar.collapsed .menu-item {
@@ -310,181 +513,144 @@ export default {
   padding: 0;
 }
 
-.sidebar.collapsed .menu-item.active {
-  padding-left: 0;
-  border-left: none;
-  border-bottom: 3px solid var(--oc-title, #1a3a6e);
-}
-
-.menu-icon {
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
-}
-
-.menu-text {
-  font-size: 14px;
-  white-space: nowrap;
-}
-
-/* 子菜单 */
+/* 分组标题（系统管理） */
 .menu-group {
   display: flex;
   flex-direction: column;
 }
 
-.menu-item-parent {
-  justify-content: space-between;
+.menu-group-title {
+  padding: 0 12px;
+  margin: 16px 0 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  color: var(--oc-sidebar-text-sub);
+  white-space: nowrap;
 }
 
-.menu-item-parent .menu-text {
-  flex: 1;
+/* 底部区 */
+.sidebar-footer {
+  padding: 8px;
+  border-top: 1px solid var(--oc-sidebar-border);
+  flex-shrink: 0;
 }
 
-.menu-arrow {
-  font-size: 12px;
-  color: rgba(26, 58, 110, 0.7);
-  transition: transform 0.2s;
-  margin-left: auto;
+.sidebar-footer .menu-item:last-child {
+  margin-bottom: 0;
 }
 
-.menu-arrow.up {
+.collapse-icon {
+  transition: transform 0.2s ease;
+}
+
+.collapse-icon.reversed {
   transform: rotate(180deg);
 }
 
-.sub-menu {
-  background: rgba(0, 0, 0, 0.04);
-  overflow: hidden;
-}
-
-.menu-item-child {
-  height: 42px;
-  padding: 0 24px 0 56px;
-  font-size: 13px;
-}
-
-.menu-item-child:hover {
-  background: rgba(255, 255, 255, 0.2);
-}
-
-.menu-item-child.active {
-  background: rgba(255, 255, 255, 0.35);
-  border-left: 3px solid var(--oc-title, #1a3a6e);
-  padding-left: 53px;
-  font-weight: 600;
-}
-
-.sidebar.collapsed .sub-menu {
-  display: none;
-}
-
-.sidebar.collapsed .menu-arrow {
-  display: none;
-}
-
-.sidebar-footer {
-  padding: 16px 20px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-/* 返回首页按钮：在侧边栏渐变背景上，使用 plain 风格 */
-.btn-back-home {
-  width: 100%;
-}
-
-/* 主内容区 */
+/* ===== 主内容区 ===== */
 .main-area {
   flex: 1;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: var(--oc-bg, #f5f7fa);
+  background: var(--oc-content-bg);
 }
 
+/* 顶栏：56px，随时段主题换肤 */
 .top-bar {
-  height: 60px;
-  background: var(--oc-bg-white, #fff);
+  height: 56px;
+  background: var(--oc-topbar-bg);
+  border-bottom: 1px solid var(--oc-topbar-border);
   display: flex;
   align-items: center;
+  justify-content: space-between;
   padding: 0 24px;
-  box-shadow: var(--oc-shadow-sm, 0 1px 4px rgba(0, 0, 0, 0.08));
   flex-shrink: 0;
-  gap: 16px;
-}
-
-/* 折叠按钮：圆形 el-button */
-.btn-collapse {
-  border: 1px solid var(--oc-border, #d0dff0) !important;
-  color: var(--oc-title, #1a3a6e) !important;
-}
-
-.btn-collapse:hover {
-  background: var(--oc-primary-bg, #f0f5ff) !important;
-  border-color: var(--oc-primary, #3584e4) !important;
-  color: var(--oc-primary, #3584e4) !important;
 }
 
 .top-title {
   margin: 0;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
-  color: var(--oc-title, #1a3a6e);
-  flex: 1;
+  color: var(--oc-topbar-text);
 }
 
-.top-right {
+/* 用户胶囊 */
+.user-capsule {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 8px;
+  padding: 4px 10px 4px 4px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  outline: none;
 }
 
-.top-username {
+.user-capsule:hover {
+  background: var(--oc-topbar-capsule-hover);
+}
+
+.user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--oc-blue-600);
+  color: #fff;
   font-size: 14px;
-  color: var(--oc-title, #1a3a6e);
-}
-
-.content-area {
-  flex: 1;
-  overflow-y: auto;
-  padding: 20px 24px;
-}
-
-/* 备案信息 */
-.footer-record {
-  text-align: center;
-  padding: 12px 0;
-  background: #f0f5ff;
-  color: #1a5fb4;
-  font-size: 12px;
-  line-height: 1.6;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
 }
 
-.footer-record p:last-child {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 12px;
+.user-name {
+  font-size: 14px;
+  color: var(--oc-topbar-text);
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.footer-record a {
-  color: #1a5fb4;
-  text-decoration: none;
+.capsule-arrow {
+  font-size: 12px;
+  color: var(--oc-topbar-text-secondary);
 }
 
-.footer-record a:hover {
-  text-decoration: underline;
+/* 内容区 */
+.content-area {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+}
+</style>
+
+<!-- 下拉菜单渲染在 body 下，需非 scoped 覆盖 -->
+<style>
+.oc-user-dropdown.el-popper.is-light {
+  border-radius: 12px;
 }
 
-.record-gongan {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
+.oc-user-dropdown .el-dropdown-menu {
+  padding: 6px;
 }
 
-.record-gongan img {
-  width: 16px;
-  height: 16px;
-  object-fit: contain;
+.oc-user-dropdown .el-dropdown-menu__item {
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 14px;
+  gap: 6px;
+}
+
+.oc-user-dropdown .el-dropdown-menu__item.dropdown-item-danger {
+  color: var(--oc-danger);
+}
+
+.oc-user-dropdown .el-dropdown-menu__item.dropdown-item-danger:hover {
+  background: var(--oc-danger-bg);
+  color: var(--oc-danger);
 }
 </style>

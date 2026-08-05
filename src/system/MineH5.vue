@@ -1,28 +1,30 @@
 <template>
   <div class="h5-mine-page">
-    <!-- 用户卡片 -->
-    <div class="h5-user-card-section">
-      <div class="h5-user-card-bg">
-        <div class="h5-user-card">
-          <div class="h5-avatar">{{ username.charAt(0).toUpperCase() }}</div>
-          <div class="h5-user-meta">
-            <span class="h5-username">{{ username }}</span>
-            <span class="h5-privilege-tag" :class="'tag-' + privilegeClass">{{ privilegeLabel }}</span>
-          </div>
+    <!-- 资料卡：深蓝渐变横幅 -->
+    <div class="h5-profile-banner">
+      <div class="h5-profile-info">
+        <div class="h5-avatar">{{ username.charAt(0).toUpperCase() }}</div>
+        <div class="h5-user-meta">
+          <span class="h5-username">{{ username }}</span>
+          <span class="h5-privilege-tag" :class="'tag-' + privilegeClass">{{ privilegeLabel }}</span>
         </div>
       </div>
     </div>
 
-    <!-- 账号信息 -->
+    <!-- 账号信息卡 -->
     <div class="h5-info-card">
-      <div class="h5-info-title">账号信息</div>
+      <div class="h5-card-title">账号信息</div>
       <div class="h5-info-row">
-        <span class="h5-info-icon">👤</span>
+        <span class="h5-info-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </span>
         <span class="h5-info-label">用户名</span>
         <span class="h5-info-value">{{ username }}</span>
       </div>
       <div class="h5-info-row">
-        <span class="h5-info-icon">🔒</span>
+        <span class="h5-info-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        </span>
         <span class="h5-info-label">权限等级</span>
         <span class="h5-info-value">
           <span class="h5-cell-tag" :class="'tag-' + privilegeClass">{{ privilegeLabel }}</span>
@@ -30,33 +32,27 @@
       </div>
     </div>
 
-    <!-- 权限说明 -->
+    <!-- 权限说明卡 -->
     <div class="h5-info-card">
-      <div class="h5-info-title">权限说明</div>
-      <div class="h5-priv-row" :class="privilege >= 1 ? 'active' : 'disabled'">
-        <span class="h5-priv-dot dot-green"></span>
-        <span class="h5-priv-name">信息检索</span>
-        <span class="h5-priv-status">{{ privilege >= 1 ? '✓' : '×' }}</span>
-      </div>
-      <div class="h5-priv-row" :class="privilege >= 2 ? 'active' : 'disabled'">
-        <span class="h5-priv-dot dot-blue"></span>
-        <span class="h5-priv-name">数据上传</span>
-        <span class="h5-priv-status">{{ privilege >= 2 ? '✓' : '×' }}</span>
-      </div>
-      <div class="h5-priv-row" :class="privilege >= 3 ? 'active' : 'disabled'">
-        <span class="h5-priv-dot dot-orange"></span>
-        <span class="h5-priv-name">系统管理</span>
-        <span class="h5-priv-status">{{ privilege >= 3 ? '✓' : '×' }}</span>
+      <div class="h5-card-title">权限说明</div>
+      <div class="h5-priv-list">
+        <div class="h5-priv-card" v-for="item in privDefs" :key="item.level">
+          <span class="h5-priv-icon" :class="item.iconClass" v-html="item.icon"></span>
+          <div class="h5-priv-main">
+            <div class="h5-priv-name">{{ item.name }}</div>
+            <div class="h5-priv-desc">{{ item.desc }}</div>
+          </div>
+          <span class="h5-priv-status" :class="{ owned: hasPriv(item.level) }">
+            <svg v-if="hasPriv(item.level)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <span v-else class="h5-priv-status-dash"></span>
+          </span>
+        </div>
       </div>
     </div>
 
-    <!-- 操作 -->
-    <div class="h5-info-card">
-      <div class="h5-info-row h5-logout-row" @click="confirmLogout">
-        <span class="h5-info-icon">🚪</span>
-        <span class="h5-info-label h5-logout-label">退出登录</span>
-        <span class="h5-info-arrow">&#8250;</span>
-      </div>
+    <!-- 退出登录：危险次按钮 -->
+    <div class="h5-logout-wrap">
+      <button class="h5-logout-btn" @click="confirmLogout">退出登录</button>
     </div>
   </div>
 </template>
@@ -78,7 +74,22 @@ export default {
       username: '',
       privilege: 1,
       privilegeLabel: '',
-      privilegeClass: ''
+      privilegeClass: '',
+      // 权限说明卡片定义（纯展示数据）
+      privDefs: [
+        {
+          level: 1, name: '信息检索', desc: '检索船型故障排查记录', iconClass: 'icon-blue',
+          icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>'
+        },
+        {
+          level: 2, name: '数据上传', desc: '新增与编辑排查记录', iconClass: 'icon-cyan',
+          icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>'
+        },
+        {
+          level: 3, name: '系统管理', desc: '批量上传、统计与用户管理', iconClass: 'icon-amber',
+          icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>'
+        }
+      ]
     }
   },
   created() {
@@ -89,6 +100,9 @@ export default {
     this.privilegeClass = p.cls
   },
   methods: {
+    hasPriv(level) {
+      return this.privilege >= level
+    },
     confirmLogout() {
       ElMessageBox.confirm('确定要退出登录吗？', '退出登录', {
         confirmButtonText: '确认',
@@ -115,22 +129,29 @@ export default {
   padding-bottom: 12px;
 }
 
-/* 用户卡片 */
-.h5-user-card-section {
-  margin-bottom: 14px;
-}
-
-.h5-user-card-bg {
+/* ===== 资料卡：深蓝渐变横幅 ===== */
+.h5-profile-banner {
   position: relative;
-  height: 150px;
-  background: linear-gradient(135deg, var(--oc-primary, #3584e4), var(--oc-primary-dark, #1a5fb4));
-  border-radius: var(--oc-radius, 10px);
+  height: 140px;
+  border-radius: var(--oc-radius-lg);
+  background: linear-gradient(135deg, var(--oc-navy-800), var(--oc-blue-700));
+  overflow: hidden;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
 }
 
-.h5-user-card {
+.h5-profile-banner::before {
+  content: '';
   position: absolute;
-  bottom: 20px;
-  left: 18px;
+  inset: 0;
+  background: radial-gradient(circle at 82% 18%, rgba(6, 182, 212, 0.22), transparent 55%);
+  pointer-events: none;
+}
+
+.h5-profile-info {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 14px;
@@ -140,15 +161,14 @@ export default {
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: #fff;
-  border: 2px solid #fff;
+  background: var(--oc-bg-white);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 600;
-  color: var(--oc-primary-dark, #1a5fb4);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  color: var(--oc-blue-700);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.2);
   flex-shrink: 0;
 }
 
@@ -159,58 +179,61 @@ export default {
 }
 
 .h5-username {
-  font-size: 17px;
+  font-size: 18px;
   font-weight: 600;
   color: #fff;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
+/* 横幅上的权限标签 */
 .h5-privilege-tag {
   display: inline-block;
   padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 12px;
+  border-radius: var(--oc-radius-sm);
+  font-size: var(--oc-text-xs);
+  font-weight: 500;
   width: fit-content;
 }
 
-.tag-normal {
-  background: #e8f4ff;
-  color: var(--oc-primary, #3584e4);
+.h5-privilege-tag.tag-admin {
+  background: rgba(245, 158, 11, 0.2);
+  color: #FBBF24;
 }
 
-.tag-advanced {
-  background: #e8f7ff;
-  color: var(--oc-success, #19be6b);
+.h5-privilege-tag.tag-advanced {
+  background: rgba(59, 130, 246, 0.22);
+  color: var(--oc-blue-300);
 }
 
-.tag-admin {
-  background: #fff7e6;
-  color: var(--oc-warning, #ff9900);
+.h5-privilege-tag.tag-normal {
+  background: rgba(255, 255, 255, 0.14);
+  color: rgba(255, 255, 255, 0.72);
 }
 
-/* 信息卡片 */
+/* ===== 信息卡片 ===== */
 .h5-info-card {
-  background: #fff;
-  border-radius: var(--oc-radius, 10px);
-  margin-bottom: 10px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  background: var(--oc-bg-white);
+  border: var(--oc-card-border);
+  border-radius: 14px;
+  box-shadow: var(--oc-shadow-sm);
+  margin-bottom: 12px;
   overflow: hidden;
 }
 
-.h5-info-title {
-  padding: 12px 16px;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--oc-text-light, #999);
-  border-bottom: 1px solid var(--oc-border, #eef1f6);
+.h5-card-title {
+  padding: 13px 16px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--oc-gray-900);
+  border-bottom: 1px solid var(--oc-border-light);
 }
 
 .h5-info-row {
   display: flex;
   align-items: center;
-  padding: 13px 16px;
+  height: 48px;
+  padding: 0 16px;
   gap: 10px;
-  border-bottom: 1px solid var(--oc-border, #eef1f6);
+  border-bottom: 1px solid var(--oc-gray-100);
 }
 
 .h5-info-row:last-child {
@@ -218,98 +241,148 @@ export default {
 }
 
 .h5-info-icon {
-  font-size: 17px;
+  width: 16px;
+  height: 16px;
+  color: var(--oc-gray-400);
+  display: flex;
+  align-items: center;
   flex-shrink: 0;
 }
 
+.h5-info-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
 .h5-info-label {
-  font-size: 14px;
-  color: #333;
+  font-size: var(--oc-text-md);
+  color: var(--oc-gray-500);
   flex: 1;
 }
 
 .h5-info-value {
-  font-size: 14px;
-  color: var(--oc-text, #46587a);
+  font-size: var(--oc-text-md);
+  font-weight: 500;
+  color: var(--oc-gray-900);
 }
 
+/* 白底上的权限标签 */
 .h5-cell-tag {
   display: inline-block;
   padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 12px;
+  border-radius: var(--oc-radius-sm);
+  font-size: var(--oc-text-xs);
+  font-weight: 500;
 }
 
-.h5-logout-row {
-  cursor: pointer;
-  transition: background 0.2s;
+.h5-cell-tag.tag-admin {
+  background: var(--oc-warning-bg);
+  color: #B45309;
 }
 
-.h5-logout-row:active {
-  background: #fef0f0;
+.h5-cell-tag.tag-advanced {
+  background: var(--oc-blue-50);
+  color: var(--oc-blue-700);
 }
 
-.h5-logout-label {
-  color: var(--oc-danger, #ed4014);
+.h5-cell-tag.tag-normal {
+  background: var(--oc-info-bg);
+  color: var(--oc-gray-500);
 }
 
-.h5-info-arrow {
-  font-size: 18px;
-  color: #ccc;
+/* ===== 权限说明：纵向小卡 ===== */
+.h5-priv-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px 16px;
 }
 
-/* 权限说明 */
-.h5-priv-row {
+.h5-priv-card {
   display: flex;
   align-items: center;
-  padding: 12px 16px;
-  gap: 10px;
-  border-bottom: 1px solid var(--oc-border, #eef1f6);
+  gap: 12px;
+  border: 1px solid var(--oc-gray-200);
+  border-radius: var(--oc-radius-md);
+  padding: 12px 14px;
 }
 
-.h5-priv-row:last-child {
-  border-bottom: none;
-}
-
-.h5-priv-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
+.h5-priv-icon {
+  display: flex;
+  align-items: center;
   flex-shrink: 0;
 }
 
-.dot-green {
-  background: var(--oc-success, #19be6b);
-}
+.h5-priv-icon.icon-blue { color: var(--oc-blue-600); }
+.h5-priv-icon.icon-cyan { color: var(--oc-cyan-500); }
+.h5-priv-icon.icon-amber { color: var(--oc-warning); }
 
-.dot-blue {
-  background: var(--oc-primary, #3584e4);
-}
-
-.dot-orange {
-  background: var(--oc-warning, #ff9900);
+.h5-priv-main {
+  flex: 1;
+  min-width: 0;
 }
 
 .h5-priv-name {
-  flex: 1;
-  font-size: 14px;
-  color: #333;
-}
-
-.h5-priv-status {
-  font-size: 16px;
+  font-size: var(--oc-text-md);
   font-weight: 600;
+  color: var(--oc-gray-900);
+  margin-bottom: 2px;
 }
 
-.h5-priv-row.active .h5-priv-status {
-  color: var(--oc-success, #19be6b);
+.h5-priv-desc {
+  font-size: var(--oc-text-xs);
+  color: var(--oc-gray-400);
 }
 
-.h5-priv-row.disabled .h5-priv-status {
-  color: #c0c4cc;
+/* 有/无状态：绿色对勾圆点 / 灰色横线 */
+.h5-priv-status {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
-.h5-priv-row.disabled .h5-priv-name {
-  color: var(--oc-text-light, #999);
+.h5-priv-status.owned {
+  background: var(--oc-success);
+  color: #fff;
+}
+
+.h5-priv-status.owned svg {
+  width: 10px;
+  height: 10px;
+}
+
+.h5-priv-status-dash {
+  width: 12px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--oc-gray-300);
+}
+
+/* ===== 退出登录：危险次按钮 ===== */
+.h5-logout-wrap {
+  display: flex;
+  margin-top: 4px;
+}
+
+.h5-logout-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 9px 24px;
+  font-size: var(--oc-text-md);
+  font-weight: 500;
+  color: var(--oc-danger);
+  background: var(--oc-bg-white);
+  border: 1px solid var(--oc-danger);
+  border-radius: var(--oc-radius);
+  cursor: pointer;
+}
+
+.h5-logout-btn:active {
+  background: var(--oc-danger-bg);
 }
 </style>

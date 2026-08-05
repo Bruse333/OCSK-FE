@@ -92,13 +92,13 @@ export default {
   flex-direction: column;
   height: 100vh;
   overflow: hidden;
-  background: var(--oc-bg, #f5f7fa);
+  background: var(--oc-gray-50);
 }
 
-/* 顶部栏 */
+/* 顶部栏：深蓝渐变 */
 .h5-top-bar {
-  height: 50px;
-  background: linear-gradient(135deg, var(--oc-primary, #3584e4), var(--oc-primary-dark, #1a5fb4));
+  height: 52px;
+  background: linear-gradient(135deg, var(--oc-navy-800), var(--oc-blue-700));
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -110,7 +110,7 @@ export default {
 .h5-back-btn {
   width: 36px;
   height: 36px;
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.12);
   border: none;
   border-radius: 50%;
   color: #fff;
@@ -120,6 +120,11 @@ export default {
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.h5-back-btn:active {
+  background: rgba(255, 255, 255, 0.22);
 }
 
 .h5-top-title {
@@ -134,10 +139,15 @@ export default {
   padding: 5px 10px;
   font-size: 13px;
   color: #fff;
-  background: rgba(255, 255, 255, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 6px;
   cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.h5-top-logout:active {
+  background: rgba(255, 255, 255, 0.22);
 }
 
 /* 内容区 */
@@ -146,7 +156,7 @@ export default {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   padding: 12px;
-  padding-bottom: 70px;
+  padding-bottom: calc(70px + env(safe-area-inset-bottom));
 }
 
 /* 底部 TabBar */
@@ -155,14 +165,15 @@ export default {
   bottom: 0;
   left: 0;
   right: 0;
-  height: 56px;
+  height: calc(56px + env(safe-area-inset-bottom));
+  padding-bottom: env(safe-area-inset-bottom);
   background: #fff;
-  border-top: 1px solid var(--oc-border, #e8ecf0);
+  border-top: 1px solid var(--oc-gray-200);
   display: flex;
   align-items: center;
   justify-content: space-around;
   z-index: 100;
-  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 -2px 10px rgba(15, 23, 42, 0.04);
 }
 
 .h5-tab-item {
@@ -173,19 +184,33 @@ export default {
   align-items: center;
   justify-content: center;
   gap: 3px;
-  color: var(--oc-text-light, #999);
+  color: var(--oc-gray-400);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: color 0.15s ease;
 }
 
 .h5-tab-item.active {
-  color: var(--oc-primary-dark, #1a5fb4);
+  color: var(--oc-blue-600);
 }
 
 .h5-tab-icon {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* 激活态图标上方小圆点指示 */
+.h5-tab-item.active .h5-tab-icon::before {
+  content: '';
+  position: absolute;
+  top: -7px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--oc-blue-600);
 }
 
 .h5-tab-label {

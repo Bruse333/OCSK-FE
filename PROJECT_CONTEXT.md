@@ -43,9 +43,9 @@ OCSKILL-FE
 │   ├── router
 │   │   └── index.js            # 路由表 + 全局守卫 + 双端组件选择
 │   ├── assets
-│   │   ├── theme.css           # 全局主题变量（主色/背景/边框/圆角/阴影 + el-* 组件主题覆盖）
-│   │   └── ...                 # 其他静态图片、基础样式
-│   ├── components              # 默认示例组件（未参与业务）
+│   │   ├── base.css            # 全局重置与 body 基础样式
+│   │   ├── theme.css           # 全局主题变量（v2.0 Design Tokens + el-* 组件主题覆盖）
+│   │   └── ...                 # 静态图片（备案图标、小程序码等）
 │   ├── login
 │   │   ├── login.vue           # PC 登录
 │   │   └── login_h5.vue        # H5 登录
@@ -73,6 +73,7 @@ OCSKILL-FE
 │       ├── token.js            # localStorage 操作 Token/用户名/权限
 │       ├── uploadQueue.js      # 全局上传队列（串行 + 200ms 节流，POST /upload 得 OSS 链接）
 │       ├── file.js             # OSS 源文件删除（DELETE /upload?objects=）
+│       ├── theme.js            # 时段主题：getTimeTheme/getGreeting/getGreetingIcon
 │       └── flowSchema.js       # 排查流程数据结构：节点工厂/校验/导入导出/id 重生成
 ```
 
@@ -290,36 +291,63 @@ timeout: 15000
 
 ## 9. UI 设计规范
 
-### 9.1 主题变量系统（`src/assets/theme.css`）
+> 2026-08 全站 UI 重设计（「深海蓝 · 工程感知识工具」）后，本节以 v2.0 token 体系为准。详细方案见 `docs/OCSKILL-UI重设计方案.md`。
+
+### 9.1 主题变量系统（`src/assets/theme.css`，v2.0）
 
 所有页面统一通过 CSS 变量引用主题色，禁止硬编码颜色值。
 
+**品牌色阶 + 中性色阶 + 语义色**：
+
 ```css
 :root {
-  --oc-primary: #3584e4;          /* 主蓝 */
-  --oc-primary-dark: #1a5fb4;     /* 深蓝 */
-  --oc-primary-light: #5FB0E6;    /* 浅蓝 */
-  --oc-primary-lighter: #87CEEB;  /* 更浅蓝 */
-  --oc-primary-bg: #f0f5ff;       /* 主色浅背景 */
-  --oc-success: #19be6b;          /* 成功绿 */
-  --oc-warning: #ff9900;          /* 警告橙 */
-  --oc-danger: #ed4014;           /* 错误红 */
-  --oc-title: #1a3a6e;            /* 标题文字 */
-  --oc-text: #46587a;             /* 正文文字 */
-  --oc-text-light: #8a94a6;       /* 辅助文字 */
-  --oc-bg: #f5f7fa;               /* 页面背景 */
-  --oc-bg-white: #fff;            /* 卡片/弹窗背景 */
-  --oc-bg-soft: #fafbfc;          /* 输入框背景 */
-  --oc-border: #eef1f6;           /* 边框色 */
-  --oc-radius: 10px;              /* 标准圆角 */
-  --oc-radius-lg: 12px;           /* 大圆角 */
-  --oc-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-  --oc-shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.08);
-  --oc-shadow-lg: 0 8px 32px rgba(26, 58, 110, 0.25);
+  /* 品牌蓝（主操作/链接/选中态）：--oc-blue-50 ~ --oc-blue-900 */
+  --oc-blue-600: #2563EB;   /* 主色 */
+  --oc-blue-700: #1D4ED8;   /* hover */
+  /* 深海军蓝（侧边栏/登录品牌区）：--oc-navy-700/800/900/950（#0B1B36 为主底色） */
+  --oc-cyan-500: #06B6D4;   /* 海洋感点缀，仅图表/标签装饰 */
+  /* 中性灰阶（界面骨架）：--oc-gray-50(页面底) ~ --oc-gray-900(标题) */
+  /* 语义色 */
+  --oc-success: #10B981;  --oc-success-bg: #ECFDF5;
+  --oc-warning: #F59E0B;  --oc-warning-bg: #FFFBEB;
+  --oc-danger:  #EF4444;  --oc-danger-bg:  #FEF2F2;  /* 禁止再用 #ed4014 */
+  --oc-info:    #64748B;  --oc-info-bg:    #F1F5F9;
 }
 ```
 
-theme.css 同时覆盖 Element Plus 组件默认主题（el-button / el-input / el-pagination 等），确保与项目配色一致。
+**旧变量兼容层（保留变量名、仅改值，旧页面无需改名）**：
+
+```css
+:root {
+  --oc-primary:         var(--oc-blue-600);
+  --oc-primary-dark:    var(--oc-blue-700);
+  --oc-primary-light:   var(--oc-blue-400);
+  --oc-primary-lighter: var(--oc-blue-200);
+  --oc-primary-bg:      var(--oc-blue-50);
+  --oc-title:           var(--oc-gray-900);
+  --oc-text:            var(--oc-gray-700);
+  --oc-text-light:      var(--oc-gray-400);
+  --oc-bg:              var(--oc-gray-50);
+  --oc-bg-white:        #FFFFFF;
+  --oc-bg-soft:         var(--oc-gray-100);
+  --oc-border:          var(--oc-gray-200);
+}
+```
+
+**圆角 / 阴影 / 字阶 / 间距**：
+
+```css
+:root {
+  --oc-radius-sm: 6px;  --oc-radius: 8px;  --oc-radius-md: 12px;  --oc-radius-lg: 16px;
+  /* 阴影为灰蓝色调（rgba(15,23,42,*)），不用纯黑阴影 */
+  --oc-shadow-sm / --oc-shadow / --oc-shadow-lg / --oc-shadow-hover;
+  --oc-card-border: 1px solid var(--oc-gray-200);  /* 卡片 = 1px 描边 + 最轻阴影 */
+  /* 字阶：12/13/14/16/18/22/28（--oc-text-xs ~ --oc-text-3xl），数字启用 tnum 等宽 */
+  /* 间距一律 4 的倍数：4/8/12/16/20/24/32/40/48；过渡 150~200ms ease */
+}
+```
+
+theme.css 同时通过 `--el-*` 变量整体换肤 Element Plus（主色/文字/边框/圆角/阴影），并对 el-button / el-input / el-dialog / el-table / el-pagination / el-message 做组件级微调，确保与项目配色一致。
 
 ### 9.2 组件统一规范
 
@@ -354,6 +382,25 @@ theme.css 同时覆盖 Element Plus 组件默认主题（el-button / el-input / 
 
 - 所有图标使用 `@element-plus/icons-vue`，通过 `markRaw()` 注册到组件 data 中避免 Vue 将其变为响应式对象。
 - 全局注册方式：在 `main.js` 中遍历 `ElementPlusIconsVue` 并 `app.component(key, component)`。
+- 内联小图标（空状态插画、附件标识等）使用 SVG，不使用 emoji。
+
+### 9.7 时段主题（清晨/白日/傍晚/夜晚）
+
+- **机制**：`src/utils/theme.js` 按小时返回 `morning(5-11) / day(11-17) / dusk(17-19) / night(19-5)`；组件根元素加 `theme-{name}` class，`theme.css` 中同名 class 覆盖一组 `--oc-hero-*` / `--oc-sidebar-*` / `--oc-banner-*` 变量实现换肤（`:root` 默认 = 夜晚）。
+- **问候语**：`getGreeting()` 含"早上好/傍晚好"；问候语旁 SVG 图标：太阳（光芒 30s 缓转）/ 黄昏半日（呼吸光晕）/ 弯月（呼吸光晕）。
+- **首页装饰按主题显隐**：夜晚=星星+流星+声呐+海浪；清晨/白日=白云漂移（隐星空）；傍晚=半沉落日+剪影飞鸟+暗淡早星（隐流星），海浪染暖橙。
+- **侧边栏**：清晨/白日换浅色皮肤（白底+深文字+右侧分隔线）；傍晚为靛紫渐变；星星仅夜晚/傍晚显示。
+- **系统框架整体联动**（SystemLayout 根节点挂主题 class）：顶栏 `--oc-topbar-*`（傍晚深靛紫/夜晚深海军蓝/白天白色），内容区底色 `--oc-content-bg`（白天极浅蓝、傍晚微暖灰、夜晚冷调蓝灰）；原则=主题色做画框、工作区保明亮。
+- **个人中心横幅**：随主题换渐变（清晨亮蓝/白日深蓝/傍晚紫橙/夜晚海军蓝）；装饰同步切换——白天白云漂移、傍晚小落日+飞鸟+淡星、夜晚星星；头像声呐脉冲环全主题保留。
+- 所有动画均有 `prefers-reduced-motion` 兜底。
+
+### 9.8 流程构建器皮肤（FlowBuilder / FlowNode / FlowRunner）
+
+- **工具栏**：白底 56px，按钮按「文件组（新建/导入/导出）｜视图校验组（全屏/校验/预览）｜提交组」分组，组间 1px 竖分隔线。
+- **节点四色**：start 绿（`--oc-success`）/ step 蓝（`--oc-blue-600`）/ decision 紫（`#8B5CF6`）/ end 灰（`--oc-gray-500`）；FlowNode 头部浅底色条与 FlowRunner 类型徽章保持一致。
+- **节点卡片**：1.5px `--oc-gray-200` 边框 + 10px 圆角 + `--oc-shadow-sm`；选中态边框 `--oc-blue-600` + 3px `--oc-blue-100` 外发光。
+- **画布**：点阵 `#E2E8F0`、间距 20px；未选船型/记录时蒙层 `rgba(248,250,252,.85)` + 居中空状态插画。
+- **全屏模式**：退出按钮固定在画布右上角（`right: calc(var(--fb-panel-w) + 28px)`），避开右侧属性面板，不遮挡"删除节点"按钮。
 
 ---
 

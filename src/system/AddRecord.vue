@@ -1,15 +1,15 @@
 <template>
   <div class="add-page">
-    <!-- 页面标题 -->
+    <!-- 页面头部 -->
     <div class="page-header">
       <h2 class="page-title">添加排查记录</h2>
-      <p class="page-subtitle">请填写以下信息完成故障排查记录的新增</p>
+      <p class="page-subtitle">填写故障现象与排查步骤，沉淀为可检索的知识</p>
     </div>
 
-    <!-- 船型选择 -->
+    <!-- 1 船型选择 -->
     <div class="form-card">
       <div class="form-section-header">
-        <span class="section-icon"><el-icon><Ship /></el-icon></span>
+        <span class="section-num">1</span>
         <span class="form-section-title">船型选择</span>
         <span class="required-mark">*</span>
       </div>
@@ -33,10 +33,10 @@
       </div>
     </div>
 
-    <!-- 故障现象 -->
+    <!-- 2 故障现象 -->
     <div class="form-card">
       <div class="form-section-header">
-        <span class="section-icon"><el-icon><EditPen /></el-icon></span>
+        <span class="section-num">2</span>
         <span class="form-section-title">故障现象</span>
         <span class="required-mark">*</span>
       </div>
@@ -50,10 +50,10 @@
       />
     </div>
 
-    <!-- 排查步骤 -->
+    <!-- 3 排查步骤 -->
     <div class="form-card">
       <div class="form-section-header">
-        <span class="section-icon"><el-icon><List /></el-icon></span>
+        <span class="section-num">3</span>
         <span class="form-section-title">排查步骤</span>
         <span class="required-mark">*</span>
       </div>
@@ -62,11 +62,14 @@
           <span class="step-index-badge">{{ i + 1 }}</span>
           <el-input
             v-model="steps[i]"
+            type="textarea"
+            :autosize="{ minRows: 2, maxRows: 4 }"
             :placeholder="`请输入第 ${i + 1} 步排查内容`"
             class="step-input"
           />
           <el-button
             v-if="steps.length > 1"
+            class="step-delete-btn"
             :icon="Close"
             circle
             text
@@ -77,18 +80,18 @@
       </div>
     </div>
 
-    <!-- 照片上传 -->
+    <!-- 4 照片上传 -->
     <div class="form-card">
       <div class="form-section-header">
-        <span class="section-icon"><el-icon><Camera /></el-icon></span>
+        <span class="section-num">4</span>
         <span class="form-section-title">照片上传</span>
-        <span class="upload-hint">单文件 &lt; 2M（可多选）</span>
+        <span class="upload-hint">最多 9 张，单张 &lt; 2M</span>
       </div>
-      <div class="upload-area">
-        <div class="upload-preview-list">
-          <div v-for="(photo, i) in photoList" :key="i" class="preview-item">
-            <img :src="photo.preview" alt="照片" class="preview-img" />
-            <div class="uploading-mask" v-if="photo.uploading">上传中...</div>
+      <div class="upload-preview-list" v-if="photoList.length > 0">
+        <div v-for="(photo, i) in photoList" :key="i" class="preview-item">
+          <img :src="photo.preview" alt="照片" class="preview-img" />
+          <div class="uploading-mask" v-if="photo.uploading">上传中...</div>
+          <div class="preview-hover-mask" v-else>
             <el-button
               class="preview-delete"
               :icon="Close"
@@ -97,52 +100,65 @@
               @click="removeFile(i, 'photo')"
             />
           </div>
-          <label class="upload-trigger" :class="{ 'upload-disabled': privilege < 2 }" v-if="photoList.length < 9">
-            <el-icon class="upload-trigger-icon"><Camera /></el-icon>
-            <span class="upload-trigger-text">选择照片</span>
-            <input type="file" accept="image/*" multiple @change="choosePhoto($event)" :disabled="privilege < 2"
-              hidden />
-          </label>
         </div>
       </div>
+      <label
+        v-if="photoList.length < 9"
+        class="upload-dropzone"
+        :class="{ 'upload-disabled': privilege < 2 }"
+        @dragover.prevent
+        @drop.prevent="onDropPhoto"
+      >
+        <el-icon class="dropzone-icon"><Camera /></el-icon>
+        <span class="dropzone-text">点击或拖拽上传</span>
+        <span class="dropzone-hint">最多 9 张，单张 &lt; 2M</span>
+        <input type="file" accept="image/*" multiple @change="choosePhoto($event)" :disabled="privilege < 2" hidden />
+      </label>
     </div>
 
-    <!-- 文件上传 -->
+    <!-- 5 文件上传 -->
     <div class="form-card">
       <div class="form-section-header">
-        <span class="section-icon"><el-icon><Paperclip /></el-icon></span>
+        <span class="section-num">5</span>
         <span class="form-section-title">文件上传</span>
-        <span class="upload-hint">单文件 &lt; 2M（可多选）</span>
+        <span class="upload-hint">支持 PDF / DOC / DOCX，单个 &lt; 2M</span>
       </div>
-      <div class="upload-area">
-        <div class="file-list" v-if="fileList.length > 0">
-          <div v-for="(file, i) in fileList" :key="i" class="file-item">
-            <el-icon class="file-icon-wrap" v-if="file.uploading"><Loading /></el-icon>
-            <el-icon class="file-icon-wrap" v-else><Document /></el-icon>
-            <div class="file-info">
-              <span class="file-name">{{ file.name }}</span>
-              <span class="file-size">{{ file.uploading ? '上传中...' : file.sizeText }}</span>
-            </div>
-            <el-button :icon="Delete" text @click="removeFile(i, 'file')" />
+      <div class="file-list" v-if="fileList.length > 0">
+        <div v-for="(file, i) in fileList" :key="i" class="file-item">
+          <el-icon class="file-icon-wrap" v-if="file.uploading"><Loading /></el-icon>
+          <el-icon class="file-icon-wrap" v-else><Document /></el-icon>
+          <div class="file-info">
+            <span class="file-name">{{ file.name }}</span>
+            <span class="file-size">{{ file.uploading ? '上传中...' : file.sizeText }}</span>
           </div>
+          <el-button :icon="Delete" text @click="removeFile(i, 'file')" />
         </div>
-        <label class="upload-trigger upload-trigger-file" :class="{ 'upload-disabled': privilege < 2 }">
-          <el-icon class="upload-trigger-icon"><Paperclip /></el-icon>
-          <span class="upload-trigger-text">选择文件</span>
-          <input type="file" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" multiple @change="chooseFile($event)" :disabled="privilege < 2" hidden />
-        </label>
       </div>
+      <label
+        class="upload-dropzone"
+        :class="{ 'upload-disabled': privilege < 2 }"
+        @dragover.prevent
+        @drop.prevent="onDropFile"
+      >
+        <el-icon class="dropzone-icon"><Paperclip /></el-icon>
+        <span class="dropzone-text">点击或拖拽上传</span>
+        <span class="dropzone-hint">支持 PDF / DOC / DOCX，单个 &lt; 2M</span>
+        <input type="file" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" multiple @change="chooseFile($event)" :disabled="privilege < 2" hidden />
+      </label>
     </div>
 
-    <!-- 提交按钮 -->
-    <div class="submit-section">
-      <el-button
-        type="primary"
-        size="large"
-        class="btn-submit-large"
-        :disabled="privilege < 2"
-        @click="handleSubmit"
-      >确认提交</el-button>
+    <!-- 吸底操作条 -->
+    <div class="submit-bar">
+      <span class="submit-tip" v-if="privilege < 2">当前账号无上传权限</span>
+      <div class="submit-actions">
+        <el-button @click="handleCancel">取消</el-button>
+        <el-button
+          type="primary"
+          class="btn-submit"
+          :disabled="privilege < 2"
+          @click="handleSubmit"
+        >提交记录</el-button>
+      </div>
     </div>
 
     <!-- 添加船型弹窗 -->
@@ -169,8 +185,8 @@
 
 <script>
 import { markRaw } from 'vue'
-import { ElMessage } from 'element-plus'
-import { Plus, Close, Delete, Ship, EditPen, List, Camera, Paperclip, Document, Loading } from '@element-plus/icons-vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { Plus, Close, Delete, Camera, Paperclip, Document, Loading } from '@element-plus/icons-vue'
 import request from '@/utils/request'
 import { getPrivilege } from '@/utils/token'
 import { deleteFiles } from '@/utils/file'
@@ -258,6 +274,13 @@ export default {
     choosePhoto(e) {
       const files = Array.from(e.target.files)
       e.target.value = ''
+      this.addPhotoFiles(files)
+    },
+    onDropPhoto(e) {
+      const files = Array.from(e.dataTransfer.files)
+      this.addPhotoFiles(files)
+    },
+    addPhotoFiles(files) {
       if (this.privilege < 2) {
         ElMessage({ message: '权限不足，无法上传照片！', type: 'error' })
         return
@@ -289,6 +312,13 @@ export default {
     chooseFile(e) {
       const files = Array.from(e.target.files)
       e.target.value = ''
+      this.addDocFiles(files)
+    },
+    onDropFile(e) {
+      const files = Array.from(e.dataTransfer.files)
+      this.addDocFiles(files)
+    },
+    addDocFiles(files) {
       if (this.privilege < 2) {
         ElMessage({ message: '权限不足，无法上传文件！', type: 'error' })
         return
@@ -327,6 +357,29 @@ export default {
         if (file && file.url) deleteFiles(file.url)
         this.fileList.splice(index, 1)
       }
+    },
+
+    // ====== 取消（清空表单，已传 OSS 文件一并清理） ======
+    handleCancel() {
+      ElMessageBox.confirm('确定要清空已填写的内容吗？', '取消编辑', {
+        confirmButtonText: '清空',
+        cancelButtonText: '继续编辑',
+        type: 'warning'
+      }).then(() => {
+        const urls = [
+          ...this.photoList.filter(p => p.url).map(p => p.url),
+          ...this.fileList.filter(f => f.url).map(f => f.url)
+        ]
+        if (urls.length > 0) deleteFiles(urls)
+        this.selectedShipId = ''
+        this.selectedShipName = ''
+        this.phenomenon = ''
+        this.steps = ['']
+        this.photoList = []
+        this.fileList = []
+      }).catch(() => {
+        // 用户取消，不做处理
+      })
     },
 
     // ====== 提交 ======
@@ -385,34 +438,36 @@ export default {
 
 <style scoped>
 .add-page {
-  max-width: 800px;
+  max-width: 880px;
   margin: 0 auto;
 }
 
+/* 页面头部 */
 .page-header {
   margin-bottom: 20px;
 }
 
 .page-title {
   margin: 0;
-  font-size: 20px;
+  font-size: var(--oc-text-2xl);
   font-weight: 600;
-  color: var(--oc-title, #1a3a6e);
+  color: var(--oc-gray-900);
 }
 
 .page-subtitle {
   margin: 6px 0 0;
-  font-size: 13px;
-  color: var(--oc-text-light, #8a94a6);
+  font-size: var(--oc-text-sm);
+  color: var(--oc-gray-400);
 }
 
 /* 表单卡片 */
 .form-card {
-  background: #fff;
-  border-radius: var(--oc-radius, 10px);
+  background: var(--oc-bg-white);
+  border: var(--oc-card-border);
+  border-radius: var(--oc-radius-md);
   padding: 20px 24px;
   margin-bottom: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--oc-shadow-sm);
 }
 
 .form-section-header {
@@ -422,34 +477,39 @@ export default {
   gap: 10px;
 }
 
-.section-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
+/* 编号方块：浅蓝底 + 品牌蓝字 */
+.section-num {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--oc-radius);
+  background: var(--oc-blue-50);
+  color: var(--oc-blue-600);
+  font-size: var(--oc-text-md);
+  font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
-  color: #fff;
-  background: linear-gradient(135deg, var(--oc-primary, #3584e4), var(--oc-primary-dark, #1a5fb4));
+  flex-shrink: 0;
 }
 
 .form-section-title {
   font-size: 15px;
-  font-weight: 500;
-  color: #333;
+  font-weight: 600;
+  color: var(--oc-gray-900);
 }
 
 .required-mark {
-  color: var(--oc-danger, #ed4014);
+  margin-left: auto;
+  color: var(--oc-danger);
   font-size: 15px;
-  font-weight: bold;
+  font-weight: 600;
 }
 
 .upload-hint {
   margin-left: auto;
-  font-size: 12px;
-  color: var(--oc-text-light, #8a94a6);
+  font-size: var(--oc-text-xs);
+  color: var(--oc-gray-400);
+  font-weight: 400;
 }
 
 /* 船型选择 */
@@ -470,53 +530,69 @@ export default {
 
 .step-row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   margin-bottom: 10px;
   gap: 10px;
 }
 
+/* 步骤序号：浅蓝底 + 蓝色描边圆环（规范 9.5） */
 .step-index-badge {
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--oc-primary, #3584e4), var(--oc-primary-dark, #1a5fb4));
-  color: #fff;
-  font-size: 13px;
+  background: var(--oc-primary-bg);
+  color: var(--oc-primary-dark);
+  border: 1.5px solid var(--oc-primary);
+  font-size: var(--oc-text-xs);
   font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  margin-top: 6px;
 }
 
 .step-input {
   flex: 1;
 }
 
+.step-delete-btn {
+  margin-top: 6px;
+  color: var(--oc-gray-400);
+}
+
+.step-delete-btn:hover {
+  color: var(--oc-danger);
+}
+
+/* 添加一步：整宽虚线按钮，hover 蓝底蓝字 */
 .add-step-btn {
   width: 100%;
-  border-style: dashed !important;
-  border-color: var(--oc-primary, #3584e4) !important;
-  color: var(--oc-primary, #3584e4) !important;
+  border: 1px dashed var(--oc-gray-300) !important;
+  border-radius: var(--oc-radius) !important;
+  color: var(--oc-blue-600) !important;
 }
 
-/* 上传区域 */
-.upload-area {
-  width: 100%;
+.add-step-btn:hover {
+  background: var(--oc-blue-50) !important;
+  border-color: var(--oc-blue-400) !important;
 }
 
+/* 已传图片缩略图：80×80，hover 删除蒙层 */
 .upload-preview-list {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
+  margin-bottom: 12px;
 }
 
 .preview-item {
   position: relative;
-  width: 100px;
-  height: 100px;
-  border-radius: 8px;
+  width: 80px;
+  height: 80px;
+  border-radius: var(--oc-radius);
   overflow: hidden;
+  border: 1px solid var(--oc-border-light);
 }
 
 .preview-img {
@@ -527,43 +603,69 @@ export default {
 
 .uploading-mask {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.4);
+  inset: 0;
+  background: rgba(15, 23, 42, 0.4);
   color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
+  font-size: var(--oc-text-xs);
 }
 
-.preview-delete {
+.preview-hover-mask {
   position: absolute;
-  top: 2px;
-  right: 2px;
-  z-index: 1;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s ease;
 }
 
-.upload-trigger {
-  width: 100px;
-  height: 100px;
-  border: 1px dashed #d0d5dd;
-  border-radius: 8px;
+.preview-item:hover .preview-hover-mask {
+  opacity: 1;
+}
+
+/* 整宽虚线拖拽上传框 */
+.upload-dropzone {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: #fafbfc;
+  gap: 6px;
+  padding: 28px 16px;
+  border: 1.5px dashed var(--oc-gray-300);
+  border-radius: var(--oc-radius-md);
+  background: var(--oc-gray-50);
   cursor: pointer;
-  gap: 4px;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
 }
 
-.upload-trigger:hover {
-  background: #f0f7ff;
-  border-color: var(--oc-primary, #3584e4);
+.upload-dropzone:hover {
+  border-color: var(--oc-blue-400);
+  background: var(--oc-blue-50);
+}
+
+.dropzone-icon {
+  font-size: 32px;
+  color: var(--oc-gray-400);
+  transition: color 0.2s ease;
+}
+
+.upload-dropzone:hover .dropzone-icon {
+  color: var(--oc-blue-600);
+}
+
+.dropzone-text {
+  font-size: var(--oc-text-md);
+  color: var(--oc-gray-700);
+  font-weight: 500;
+}
+
+.dropzone-hint {
+  font-size: var(--oc-text-xs);
+  color: var(--oc-gray-400);
 }
 
 .upload-disabled {
@@ -572,40 +674,27 @@ export default {
 }
 
 .upload-disabled:hover {
-  background: #fafbfc;
-  border-color: #d0d5dd;
+  border-color: var(--oc-gray-300);
+  background: var(--oc-gray-50);
 }
 
-.upload-trigger-icon {
-  font-size: 24px;
-  color: var(--oc-text-light, #8a94a6);
-}
-
-.upload-trigger-text {
-  font-size: 12px;
-  color: var(--oc-text-light, #8a94a6);
-}
-
-.upload-trigger-file {
-  width: 100%;
-  height: 50px;
-  flex-direction: row;
-  margin-top: 12px;
+.upload-disabled:hover .dropzone-icon {
+  color: var(--oc-gray-400);
 }
 
 /* 文件列表 */
 .file-list {
   width: 100%;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
 }
 
 .file-item {
   display: flex;
   align-items: center;
   padding: 10px 12px;
-  background: #fafbfc;
-  border: 1px solid #e8ecf0;
-  border-radius: 8px;
+  background: var(--oc-gray-50);
+  border: 1px solid var(--oc-border-light);
+  border-radius: var(--oc-radius);
   margin-bottom: 8px;
   gap: 10px;
 }
@@ -617,7 +706,7 @@ export default {
 .file-icon-wrap {
   font-size: 18px;
   flex-shrink: 0;
-  color: var(--oc-primary, #3584e4);
+  color: var(--oc-blue-600);
 }
 
 .file-info {
@@ -628,8 +717,8 @@ export default {
 }
 
 .file-name {
-  font-size: 13px;
-  color: #333;
+  font-size: var(--oc-text-sm);
+  color: var(--oc-gray-900);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -637,18 +726,36 @@ export default {
 
 .file-size {
   font-size: 11px;
-  color: var(--oc-text-light, #8a94a6);
+  color: var(--oc-gray-400);
   margin-top: 2px;
 }
 
-/* 提交按钮 */
-.submit-section {
-  margin-top: 8px;
+/* 吸底操作条 */
+.submit-bar {
+  position: sticky;
+  bottom: 24px;
+  display: flex;
+  align-items: center;
+  background: var(--oc-bg-white);
+  border: var(--oc-card-border);
+  border-radius: var(--oc-radius-md);
+  box-shadow: var(--oc-shadow-lg);
+  padding: 12px 20px;
   margin-bottom: 24px;
 }
 
-.btn-submit-large {
-  width: 100%;
-  letter-spacing: 2px;
+.submit-tip {
+  font-size: var(--oc-text-sm);
+  color: var(--oc-gray-400);
+}
+
+.submit-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 12px;
+}
+
+.btn-submit {
+  width: 120px;
 }
 </style>

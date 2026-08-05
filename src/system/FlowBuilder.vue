@@ -39,19 +39,30 @@
         </el-select>
       </div>
       <div class="toolbar-spacer"></div>
-      <el-button :icon="FullScreen" @click="toggleFullscreen" :title="canvasFullscreen ? '退出全屏 (Esc)' : '全屏编辑'">{{ canvasFullscreen ? '退出全屏' : '全屏' }}</el-button>
-      <el-button @click="handleNew">新建</el-button>
-      <el-button :icon="Aim" @click="handleValidate">校验</el-button>
-      <el-button :icon="View" @click="handlePreview">预览</el-button>
-      <el-button :icon="Upload" @click="triggerImport">导入JSON</el-button>
-      <el-button :icon="Download" @click="handleExport">导出JSON</el-button>
-      <el-button
-        type="primary"
-        :icon="Promotion"
-        :loading="submitting"
-        title="上传流程文件并绑定到所选故障排查记录"
-        @click="handleSubmit"
-      >提交</el-button>
+      <!-- 文件组 -->
+      <div class="toolbar-group">
+        <el-button :icon="Plus" @click="handleNew">新建</el-button>
+        <el-button :icon="Upload" @click="triggerImport">导入</el-button>
+        <el-button :icon="Download" @click="handleExport">导出</el-button>
+      </div>
+      <span class="toolbar-divider"></span>
+      <!-- 视图与校验组 -->
+      <div class="toolbar-group">
+        <el-button :icon="FullScreen" @click="toggleFullscreen" :title="canvasFullscreen ? '退出全屏 (Esc)' : '全屏编辑'">{{ canvasFullscreen ? '退出全屏' : '全屏' }}</el-button>
+        <el-button :icon="Aim" @click="handleValidate">校验</el-button>
+        <el-button :icon="View" @click="handlePreview">预览</el-button>
+      </div>
+      <span class="toolbar-divider"></span>
+      <!-- 提交组 -->
+      <div class="toolbar-group">
+        <el-button
+          type="primary"
+          :icon="Promotion"
+          :loading="submitting"
+          title="上传流程文件并绑定到所选故障排查记录"
+          @click="handleSubmit"
+        >提交</el-button>
+      </div>
       <input
         ref="importInput"
         type="file"
@@ -62,10 +73,11 @@
     </div>
 
     <div class="fb-main" :class="{ 'is-fullscreen': canvasFullscreen }">
-      <!-- 全屏时浮动退出按钮 -->
+      <!-- 全屏时浮动退出按钮（定位在画布右上角，避开右侧属性面板，不遮挡删除节点按钮） -->
       <el-button
         v-if="canvasFullscreen"
         class="fb-exit-fullscreen"
+        :icon="FullScreen"
         title="退出全屏 (Esc)"
         @click="toggleFullscreen"
       >退出全屏</el-button>
@@ -99,7 +111,7 @@
           :max-zoom="2.5"
           fit-view-on-init
         >
-          <Background pattern-color="#c7d5e8" :gap="20" />
+          <Background pattern-color="#E2E8F0" :gap="20" :size="1" />
           <Controls position="bottom-left" />
           <template #node-flow="nodeProps">
             <FlowNode v-bind="nodeProps" />
@@ -108,8 +120,19 @@
         <!-- 未选船型/排查记录时蒙层阻止交互 -->
         <div v-if="!canvasReady" class="fb-canvas-mask">
           <div class="fb-canvas-placeholder">
-            <div class="placeholder-icon">⚙</div>
-            <p class="placeholder-title">请先选择关联船型与排查记录</p>
+            <div class="placeholder-illustration">
+              <svg viewBox="0 0 120 90" fill="none">
+                <rect x="8" y="34" width="32" height="22" rx="6" fill="#fff" stroke="#CBD5E1" stroke-width="2"/>
+                <rect x="78" y="10" width="34" height="22" rx="6" fill="#fff" stroke="#93C5FD" stroke-width="2"/>
+                <rect x="78" y="58" width="34" height="22" rx="6" fill="#fff" stroke="#CBD5E1" stroke-width="2"/>
+                <path d="M40 45 C 58 45, 60 21, 78 21" stroke="#93C5FD" stroke-width="2"/>
+                <path d="M40 45 C 58 45, 60 69, 78 69" stroke="#CBD5E1" stroke-width="2"/>
+                <circle cx="23" cy="45" r="3" fill="#2563EB"/>
+                <circle cx="95" cy="21" r="3" fill="#93C5FD"/>
+                <circle cx="95" cy="69" r="3" fill="#CBD5E1"/>
+              </svg>
+            </div>
+            <p class="placeholder-title">请先在顶部选择关联船型与排查记录</p>
             <p class="placeholder-sub">选择排查记录后将自动加载已有流程，或创建新流程进行编辑</p>
           </div>
         </div>
@@ -1566,27 +1589,33 @@ export default {
 
 <style scoped>
 .flow-builder {
+  /* 面板宽度变量：全屏退出按钮定位需引用，避免遮挡属性面板操作 */
+  --fb-panel-w: 280px;
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 60px - 40px);
+  height: calc(100vh - 56px - 48px);
   min-height: 540px;
-  background: #fff;
-  border-radius: 10px;
+  background: var(--oc-gray-50);
+  border-radius: var(--oc-radius-md);
   overflow: hidden;
-  border: 1px solid #e3eaf5;
+  border: var(--oc-card-border);
+  box-shadow: var(--oc-shadow-sm);
 }
 
-/* 顶部工具栏 */
+/* ===== 顶部工具栏：白底 56px，按钮分组 + 竖分隔线 ===== */
 .fb-toolbar {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 14px;
-  border-bottom: 1px solid #e3eaf5;
-  background: #fafcff;
+  height: 56px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--oc-gray-200);
+  background: var(--oc-bg-white);
   flex-shrink: 0;
+  box-sizing: border-box;
 }
 
+.ship-select-wrap,
 .record-select-wrap {
   display: flex;
   align-items: center;
@@ -1596,47 +1625,69 @@ export default {
   flex: 1;
 }
 
-/* 主区域 */
+.toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 分组内消除 el-button 相邻默认边距，统一由 gap 控制 */
+.toolbar-group .el-button + .el-button {
+  margin-left: 0;
+}
+
+.toolbar-divider {
+  width: 1px;
+  height: 20px;
+  background: var(--oc-gray-200);
+  flex-shrink: 0;
+}
+
+/* ===== 主区域 ===== */
 .fb-main {
   flex: 1;
   display: flex;
   overflow: hidden;
 }
 
-/* 全屏编辑：整个工作区固定铺满视口，顶栏让出空间 */
+/* 全屏编辑：整个工作区固定铺满视口 */
 .fb-main.is-fullscreen {
   position: fixed;
   inset: 0;
   z-index: 900;
-  background: #f5f7fa;
+  background: var(--oc-gray-50);
 }
 
-/* 全屏退出按钮 */
+/* 全屏退出按钮：固定在画布右上角（右偏一个面板宽度），不遮挡右侧属性面板的删除节点按钮 */
 .fb-exit-fullscreen {
   position: fixed;
-  top: 14px;
-  right: 18px;
+  top: 16px;
+  right: calc(var(--fb-panel-w) + 28px);
   z-index: 910;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  border-radius: var(--oc-radius-pill);
+  box-shadow: var(--oc-shadow-lg);
 }
 
-/* 左侧组件面板 */
+/* ===== 左侧组件面板（白卡） ===== */
 .fb-palette {
-  width: 150px;
+  width: 156px;
   flex-shrink: 0;
-  border-right: 1px solid #e3eaf5;
+  margin: 12px 0 12px 12px;
   padding: 14px 12px;
   display: flex;
   flex-direction: column;
   gap: 10px;
-  background: #fafcff;
+  background: var(--oc-bg-white);
+  border: var(--oc-card-border);
+  border-radius: var(--oc-radius-md);
+  overflow-y: auto;
 }
 
 .palette-title {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--oc-text-sm);
   font-weight: 600;
-  color: #1a3a6e;
+  color: var(--oc-gray-900);
 }
 
 .palette-item {
@@ -1644,24 +1695,25 @@ export default {
   align-items: center;
   gap: 8px;
   padding: 9px 10px;
-  font-size: 13px;
-  color: #1a3a6e;
-  background: #fff;
-  border: 1px solid #d0dff0;
-  border-radius: 8px;
+  font-size: var(--oc-text-sm);
+  color: var(--oc-gray-700);
+  background: var(--oc-bg-white);
+  border: 1px solid var(--oc-gray-200);
+  border-radius: var(--oc-radius);
   cursor: grab;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
   user-select: none;
 }
 
 .palette-item:not(.disabled):hover {
-  border-color: #3584e4;
-  background: #f0f5ff;
+  border-color: var(--oc-blue-600);
+  background: var(--oc-blue-50);
+  color: var(--oc-blue-700);
 }
 
 .palette-item.disabled {
   cursor: not-allowed;
-  opacity: 0.65;
+  opacity: 0.55;
 }
 
 .palette-dot {
@@ -1671,23 +1723,24 @@ export default {
   flex-shrink: 0;
 }
 
-.palette-start .palette-dot { background: #3584e4; }
-.palette-step .palette-dot { background: #19be6b; }
-.palette-decision .palette-dot { background: #ff9900; }
-.palette-end .palette-dot { background: #ed4014; }
+/* 与节点头部色条一致：start 绿 / step 蓝 / decision 紫 / end 灰 */
+.palette-start .palette-dot { background: var(--oc-success); }
+.palette-step .palette-dot { background: var(--oc-blue-600); }
+.palette-decision .palette-dot { background: #8B5CF6; }
+.palette-end .palette-dot { background: var(--oc-gray-500); }
 
 .palette-hint {
   margin: 0;
   font-size: 11px;
-  color: #9aa7bd;
+  color: var(--oc-gray-400);
   line-height: 1.6;
 }
 
-/* 画布 */
+/* ===== 画布 ===== */
 .fb-canvas {
   flex: 1;
   position: relative;
-  background: #f5f7fa;
+  margin: 12px 0 12px 12px;
 }
 
 .vue-flow-canvas {
@@ -1695,14 +1748,17 @@ export default {
   height: 100%;
 }
 
-/* 右侧属性面板 */
+/* ===== 右侧属性面板（白卡） ===== */
 .fb-panel {
-  width: 280px;
+  width: var(--fb-panel-w);
   flex-shrink: 0;
-  border-left: 1px solid #e3eaf5;
+  margin: 12px;
   overflow-y: auto;
-  padding: 14px;
-  background: #fff;
+  padding: 16px;
+  background: var(--oc-bg-white);
+  border: var(--oc-card-border);
+  border-radius: var(--oc-radius-md);
+  box-sizing: border-box;
 }
 
 .panel-section {
@@ -1711,11 +1767,13 @@ export default {
   gap: 6px;
   padding-bottom: 14px;
   margin-bottom: 14px;
-  border-bottom: 1px dashed #e3eaf5;
+  border-bottom: 1px dashed var(--oc-gray-200);
 }
 
 .panel-section:last-child {
   border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
 }
 
 .panel-title-row {
@@ -1726,21 +1784,22 @@ export default {
 }
 
 .panel-title {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
-  color: #1a3a6e;
+  color: var(--oc-gray-900);
 }
 
 .field-label {
-  font-size: 12px;
-  color: #6b7a99;
+  font-size: var(--oc-text-sm);
+  font-weight: 500;
+  color: var(--oc-gray-700);
   margin-top: 6px;
 }
 
 .field-tip {
   margin: 4px 0 0;
-  font-size: 11px;
-  color: #9aa7bd;
+  font-size: var(--oc-text-xs);
+  color: var(--oc-gray-400);
   line-height: 1.6;
 }
 
@@ -1754,7 +1813,7 @@ export default {
   flex: 1;
 }
 
-/* 附件 */
+/* ===== 附件 ===== */
 .photo-list {
   display: flex;
   flex-wrap: wrap;
@@ -1765,9 +1824,9 @@ export default {
   position: relative;
   width: 56px;
   height: 56px;
-  border-radius: 6px;
+  border-radius: var(--oc-radius-sm);
   overflow: hidden;
-  border: 1px solid #e3eaf5;
+  border: 1px solid var(--oc-gray-200);
 }
 
 .photo-thumb img {
@@ -1786,7 +1845,7 @@ export default {
   text-align: center;
   font-size: 12px;
   color: #fff;
-  background: rgba(237, 64, 20, 0.85);
+  background: rgba(239, 68, 68, 0.9);
   cursor: pointer;
   border-radius: 0 6px 0 6px;
 }
@@ -1794,19 +1853,22 @@ export default {
 .photo-add {
   width: 56px;
   height: 56px;
-  border: 1px dashed #9ab8e8;
-  border-radius: 6px;
+  border: 1.5px dashed var(--oc-gray-300);
+  border-radius: var(--oc-radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 22px;
-  color: #3584e4;
+  color: var(--oc-gray-400);
   cursor: pointer;
-  background: #fafcff;
+  background: var(--oc-gray-50);
+  transition: all 0.2s ease;
 }
 
 .photo-add:hover {
-  background: #f0f5ff;
+  color: var(--oc-blue-600);
+  border-color: var(--oc-blue-400);
+  background: var(--oc-blue-50);
 }
 
 .uploading-text {
@@ -1825,14 +1887,14 @@ export default {
   justify-content: space-between;
   gap: 8px;
   padding: 6px 10px;
-  background: #f5f7fa;
-  border-radius: 6px;
-  border: 1px solid #e3eaf5;
+  background: var(--oc-gray-50);
+  border-radius: var(--oc-radius-sm);
+  border: 1px solid var(--oc-gray-200);
 }
 
 .doc-name {
-  font-size: 12px;
-  color: #1a3a6e;
+  font-size: var(--oc-text-xs);
+  color: var(--oc-gray-700);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1840,15 +1902,20 @@ export default {
 
 .doc-remove {
   font-size: 14px;
-  color: #ed4014;
+  color: var(--oc-gray-400);
   cursor: pointer;
   flex-shrink: 0;
+  transition: color 0.2s ease;
+}
+
+.doc-remove:hover {
+  color: var(--oc-danger);
 }
 
 .edge-info {
   margin: 0;
-  font-size: 12px;
-  color: #46587a;
+  font-size: var(--oc-text-xs);
+  color: var(--oc-gray-700);
   line-height: 1.6;
   word-break: break-all;
 }
@@ -1857,14 +1924,15 @@ export default {
   display: flex;
   gap: 16px;
   margin-top: 8px;
-  font-size: 12px;
-  color: #6b7a99;
+  font-size: var(--oc-text-xs);
+  color: var(--oc-gray-500);
+  font-feature-settings: "tnum";
 }
 
-/* 校验报告 */
+/* ===== 校验报告 ===== */
 .report-ok {
-  font-size: 14px;
-  color: #19be6b;
+  font-size: var(--oc-text-md);
+  color: var(--oc-success);
   padding: 10px 0;
 }
 
@@ -1878,10 +1946,11 @@ export default {
 
 .report-item {
   padding: 8px 10px;
-  font-size: 13px;
-  color: #46587a;
-  border-bottom: 1px dashed #edf1f7;
+  font-size: var(--oc-text-sm);
+  color: var(--oc-gray-700);
+  border-bottom: 1px dashed var(--oc-gray-100);
   line-height: 1.6;
+  border-radius: var(--oc-radius-sm);
 }
 
 .report-item.clickable {
@@ -1889,16 +1958,16 @@ export default {
 }
 
 .report-item.clickable:hover {
-  background: #f0f5ff;
+  background: var(--oc-blue-50);
 }
 
 .report-locate {
-  font-size: 12px;
-  color: #3584e4;
+  font-size: var(--oc-text-xs);
+  color: var(--oc-blue-600);
   margin-left: 6px;
 }
 
-/* 画布未就绪蒙层 */
+/* ===== 画布未就绪蒙层：浅色留白 + 居中空状态 ===== */
 .fb-canvas-mask {
   position: absolute;
   inset: 0;
@@ -1906,50 +1975,42 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(245, 247, 250, 0.92);
+  background: rgba(248, 250, 252, 0.85);
   backdrop-filter: blur(2px);
 }
 
 .fb-canvas-placeholder {
   text-align: center;
-  color: #6b7a99;
   max-width: 360px;
   padding: 20px;
 }
 
-.placeholder-icon {
-  font-size: 44px;
-  color: #9ab8e8;
-  margin-bottom: 12px;
-  line-height: 1;
+.placeholder-illustration {
+  width: 120px;
+  height: 90px;
+  margin: 0 auto 16px;
+}
+
+.placeholder-illustration svg {
+  width: 100%;
+  height: 100%;
 }
 
 .placeholder-title {
   margin: 0 0 6px;
   font-size: 15px;
-  font-weight: 600;
-  color: #1a3a6e;
+  font-weight: 500;
+  color: var(--oc-gray-700);
 }
 
 .placeholder-sub {
   margin: 0;
-  font-size: 12px;
-  color: #9aa7bd;
+  font-size: var(--oc-text-sm);
+  color: var(--oc-gray-400);
   line-height: 1.6;
 }
 
-/* 从排查记录选择按钮 */
-.btn-from-record {
-  margin-top: 6px;
-  width: 100%;
-}
-
-.btn-from-record:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* 媒体选择弹窗 */
+/* ===== 媒体选择弹窗 ===== */
 .picker-photo-grid {
   display: flex;
   flex-wrap: wrap;
@@ -1960,11 +2021,11 @@ export default {
   position: relative;
   width: 92px;
   height: 92px;
-  border: 2px solid #e3eaf5;
-  border-radius: 8px;
+  border: 2px solid var(--oc-gray-200);
+  border-radius: var(--oc-radius);
   overflow: hidden;
   cursor: pointer;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .picker-photo img {
@@ -1974,12 +2035,12 @@ export default {
 }
 
 .picker-photo:not(.duplicate):hover {
-  border-color: #3584e4;
+  border-color: var(--oc-blue-600);
 }
 
 .picker-photo.selected {
-  border-color: #19be6b;
-  box-shadow: 0 0 0 2px rgba(25, 190, 107, 0.2);
+  border-color: var(--oc-blue-600);
+  box-shadow: 0 0 0 2px var(--oc-blue-100);
 }
 
 .picker-photo.duplicate {
@@ -1999,11 +2060,11 @@ export default {
 }
 
 .picker-badge.sel {
-  background: #19be6b;
+  background: var(--oc-blue-600);
 }
 
 .picker-badge.dup {
-  background: #9aa7bd;
+  background: var(--oc-gray-400);
 }
 
 .picker-doc-list {
@@ -2018,20 +2079,20 @@ export default {
   justify-content: space-between;
   gap: 8px;
   padding: 10px 12px;
-  border: 1px solid #e3eaf5;
-  border-radius: 8px;
+  border: 1px solid var(--oc-gray-200);
+  border-radius: var(--oc-radius);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
 }
 
 .picker-doc:not(.duplicate):hover {
-  border-color: #3584e4;
-  background: #f0f5ff;
+  border-color: var(--oc-blue-600);
+  background: var(--oc-blue-50);
 }
 
 .picker-doc.selected {
-  border-color: #19be6b;
-  background: #f0fbf4;
+  border-color: var(--oc-blue-600);
+  background: var(--oc-blue-50);
 }
 
 .picker-doc.duplicate {
@@ -2041,8 +2102,8 @@ export default {
 
 .picker-doc-name {
   flex: 1;
-  font-size: 13px;
-  color: #1a3a6e;
+  font-size: var(--oc-text-sm);
+  color: var(--oc-gray-700);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -2052,7 +2113,7 @@ export default {
   margin: 0;
   padding: 24px 0;
   text-align: center;
-  font-size: 13px;
-  color: #9aa7bd;
+  font-size: var(--oc-text-sm);
+  color: var(--oc-gray-400);
 }
 </style>

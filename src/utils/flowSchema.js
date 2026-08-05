@@ -11,10 +11,10 @@ export const FLOW_VERSION = '1.0.0'
 export const NODE_TYPES = ['start', 'step', 'decision', 'end']
 
 export const NODE_TYPE_META = {
-  start: { label: '开始', color: '#3584e4' },
-  step: { label: '步骤', color: '#19be6b' },
-  decision: { label: '判断', color: '#ff9900' },
-  end: { label: '结束', color: '#ed4014' }
+  start: { label: '开始', color: '#10B981' },
+  step: { label: '步骤', color: '#2563EB' },
+  decision: { label: '判断', color: '#8B5CF6' },
+  end: { label: '结束', color: '#64748B' }
 }
 
 let idSeq = 0

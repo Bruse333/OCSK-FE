@@ -36,6 +36,7 @@
           :preview-src-list="photos"
           :initial-index="i"
           fit="cover"
+          preview-teleported
           class="photo-item"
         />
       </div>
@@ -50,7 +51,11 @@
           rel="noopener noreferrer"
           class="doc-link"
         >
-          📄 {{ docName(url, i) }}
+          <svg class="doc-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+          </svg>
+          {{ docName(url, i) }}
         </a>
       </div>
 
@@ -212,8 +217,8 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  font-size: 14px;
-  color: #1a3a6e;
+  font-size: var(--oc-text-md);
+  color: var(--oc-gray-900);
 }
 
 .runner-header {
@@ -229,31 +234,31 @@ export default {
 }
 
 .flow-name {
-  font-size: 16px;
+  font-size: var(--oc-text-lg);
   font-weight: 600;
 }
 
 .ship-tag {
-  font-size: 12px;
-  color: #1a5fb4;
-  background: #e6f1fb;
-  border-radius: 4px;
+  font-size: var(--oc-text-xs);
+  color: var(--oc-blue-700);
+  background: var(--oc-blue-50);
+  border-radius: var(--oc-radius-sm);
   padding: 2px 8px;
 }
 
 .runner-breadcrumb {
-  font-size: 12px;
-  color: #6b7a99;
+  font-size: var(--oc-text-xs);
+  color: var(--oc-gray-500);
   line-height: 1.6;
 }
 
 .crumb-label {
-  color: #9aa7bd;
+  color: var(--oc-gray-400);
 }
 
 .crumb-sep {
   margin: 0 4px;
-  color: #b8c2d4;
+  color: var(--oc-gray-300);
 }
 
 .runner-body {
@@ -264,7 +269,7 @@ export default {
 }
 
 .runner-error {
-  color: #ed4014;
+  color: var(--oc-danger);
 }
 
 .node-type-row {
@@ -275,34 +280,37 @@ export default {
 }
 
 .node-type-badge {
-  font-size: 12px;
+  font-size: var(--oc-text-xs);
+  font-weight: 500;
   padding: 2px 10px;
   border-radius: 10px;
   color: #fff;
 }
 
-.node-type-badge.type-start { background: #3584e4; }
-.node-type-badge.type-step { background: #19be6b; }
-.node-type-badge.type-decision { background: #ff9900; }
-.node-type-badge.type-end { background: #ed4014; }
+/* 与 FlowNode 头部色条一致：start 绿 / step 蓝 / decision 紫 / end 灰 */
+.node-type-badge.type-start { background: var(--oc-success); }
+.node-type-badge.type-step { background: var(--oc-blue-600); }
+.node-type-badge.type-decision { background: #8B5CF6; }
+.node-type-badge.type-end { background: var(--oc-gray-500); }
 
 .step-counter {
-  font-size: 12px;
-  color: #9aa7bd;
+  font-size: var(--oc-text-xs);
+  color: var(--oc-gray-400);
+  font-feature-settings: "tnum";
 }
 
 .node-title {
   margin: 0 0 8px;
-  font-size: 16px;
+  font-size: var(--oc-text-lg);
   font-weight: 600;
-  color: #1a3a6e;
+  color: var(--oc-gray-900);
 }
 
 .node-desc {
   margin: 0 0 12px;
-  font-size: 13px;
+  font-size: var(--oc-text-sm);
   line-height: 1.7;
-  color: #46587a;
+  color: var(--oc-gray-700);
   white-space: pre-wrap;
 }
 
@@ -316,8 +324,8 @@ export default {
 .photo-item {
   width: 88px;
   height: 88px;
-  border-radius: 8px;
-  border: 1px solid #e3eaf5;
+  border-radius: var(--oc-radius);
+  border: 1px solid var(--oc-gray-200);
   cursor: zoom-in;
 }
 
@@ -329,9 +337,18 @@ export default {
 }
 
 .doc-link {
-  font-size: 13px;
-  color: #1a5fb4;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--oc-text-sm);
+  color: var(--oc-blue-600);
   text-decoration: none;
+}
+
+.doc-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
 }
 
 .doc-link:hover {
@@ -347,71 +364,73 @@ export default {
 
 .btn-primary {
   padding: 10px 18px;
-  font-size: 14px;
+  font-size: var(--oc-text-md);
+  font-weight: 500;
   color: #fff;
-  background: #3584e4;
+  background: var(--oc-blue-600);
   border: none;
-  border-radius: 8px;
+  border-radius: var(--oc-radius);
   cursor: pointer;
-  transition: background 0.2s;
+  transition: background 0.2s ease;
 }
 
 .btn-primary:hover {
-  background: #1a5fb4;
+  background: var(--oc-blue-700);
 }
 
 .btn-option {
   padding: 12px 16px;
-  font-size: 14px;
+  font-size: var(--oc-text-md);
   text-align: left;
-  color: #1a3a6e;
-  background: #f5f7fa;
-  border: 1px solid #d0dff0;
-  border-radius: 8px;
+  color: var(--oc-gray-700);
+  background: var(--oc-gray-50);
+  border: 1px solid var(--oc-gray-200);
+  border-radius: var(--oc-radius);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
 }
 
 .btn-option:hover {
-  background: #e6f1fb;
-  border-color: #3584e4;
+  background: var(--oc-blue-50);
+  border-color: var(--oc-blue-600);
+  color: var(--oc-blue-700);
 }
 
 .result-box {
-  border-radius: 8px;
+  border-radius: var(--oc-radius);
   padding: 14px 16px;
-  background: #fdf0ee;
-  border: 1px solid #f2c1bb;
+  background: var(--oc-danger-bg);
+  border: 1px solid #FECACA;
 }
 
 .result-box.resolved {
-  background: #ecf9f1;
-  border-color: #a9e4c3;
+  background: var(--oc-success-bg);
+  border-color: #A7F3D0;
 }
 
 .result-status {
-  font-size: 14px;
+  font-size: var(--oc-text-md);
   font-weight: 600;
   margin-bottom: 6px;
-  color: #ed4014;
+  color: var(--oc-danger);
 }
 
 .result-box.resolved .result-status {
-  color: #19be6b;
+  color: var(--oc-success);
 }
 
 .result-conclusion {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--oc-text-sm);
   line-height: 1.7;
-  color: #46587a;
+  color: var(--oc-gray-700);
   white-space: pre-wrap;
 }
 
 .result-suggestion {
   margin: 8px 0 0;
-  font-size: 12px;
-  color: #6b7a99;
+  font-size: var(--oc-text-xs);
+  color: var(--oc-gray-500);
   white-space: pre-wrap;
 }
 
@@ -423,18 +442,21 @@ export default {
 .btn-text {
   background: none;
   border: none;
-  font-size: 13px;
-  color: #3584e4;
+  font-size: var(--oc-text-sm);
+  color: var(--oc-blue-600);
   cursor: pointer;
   padding: 4px 8px;
+  border-radius: var(--oc-radius-sm);
+  transition: all 0.2s ease;
 }
 
 .btn-text:disabled {
-  color: #b8c2d4;
+  color: var(--oc-gray-300);
   cursor: not-allowed;
 }
 
 .btn-text:not(:disabled):hover {
-  color: #1a5fb4;
+  color: var(--oc-blue-700);
+  background: var(--oc-blue-50);
 }
 </style>

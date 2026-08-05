@@ -1,15 +1,39 @@
 <template>
-  <div class="page-wrapper">
-    <header class="site-header">
-      <h1 class="site-name">技术知识查询</h1>
-    </header>
+  <div class="login-wrapper">
+    <!-- 左侧品牌区 -->
+    <section class="brand-pane">
+      <div class="brand-content">
+        <div class="brand-row">
+          <span class="brand-mark">OC</span>
+          <span class="brand-name">OCSKILL</span>
+        </div>
+        <h1 class="brand-title">技术知识查询系统</h1>
+        <p class="brand-subtitle">让技能点亮未来 —— 船舶故障排查知识库</p>
+        <ul class="feature-list">
+          <li class="feature-item" v-for="item in features" :key="item.text">
+            <span class="feature-icon" v-html="item.icon"></span>
+            <span class="feature-text">{{ item.text }}</span>
+          </li>
+        </ul>
+      </div>
 
-    <div class="image-container">
-      <img src="../assets/ocskill_login.png" alt="Login Background" />
-      <div class="login-panel">
-        <h2 class="login-title">用户登录</h2>
+      <!-- 小程序码 -->
+      <div class="mini-qr">
+        <img class="mini-qr-img" src="../assets/MiniMessenger.jpg" alt="小程序码" />
+        <div class="mini-qr-text">
+          <p>扫码使用小程序</p>
+          <p class="mini-qr-sub">移动端随时查询</p>
+        </div>
+      </div>
+    </section>
 
-        <form @submit.prevent="handleLogin">
+    <!-- 右侧登录区 -->
+    <section class="form-pane">
+      <div class="login-form">
+        <h2 class="form-title">欢迎登录</h2>
+        <p class="form-subtitle">请使用账号密码登录系统</p>
+
+        <form @submit.prevent="handleLogin()">
           <div class="form-group">
             <label for="username">用户名</label>
             <el-input
@@ -34,26 +58,33 @@
               autocomplete="off"
             />
           </div>
-          <el-button type="primary" native-type="submit" size="large" class="btn-login">登录</el-button>
+          <el-button
+            type="primary"
+            native-type="submit"
+            size="large"
+            class="btn-login"
+            :loading="loading"
+          >登录</el-button>
           <div class="guest-link">
-            <el-link type="primary" :underline="false" @click="handleGuestLogin">游客登陆</el-link>
+            <el-link type="primary" :underline="false" @click="handleGuestLogin">游客登录</el-link>
           </div>
         </form>
       </div>
-    </div>
-    <footer class="footer-record">
-      <p>Copyright &copy; 2026 OCSKILL技术知识查询. All Rights Reserved.</p>
-      <p>
-        <a class="record-gongan" href="http://www.beian.gov.cn/portal/registerSystemInfo?recordcode=44195402000128"
-          target="_blank" rel="noopener noreferrer">
-          <img src="../assets/gongan.png" alt="公安备案图标" />
-          粤公网安备44195402000128号
-        </a>
-        <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">
-          粤ICP备2026082654号
-        </a>
-      </p>
-    </footer>
+
+      <footer class="page-footer">
+        <p>&copy; 2026 OCSKILL &middot; 技术知识查询系统</p>
+        <p class="record-links">
+          <a class="record-gongan" href="http://www.beian.gov.cn/portal/registerSystemInfo?recordcode=44195402000128"
+            target="_blank" rel="noopener noreferrer">
+            <img src="../assets/gongan.png" alt="公安备案图标" />
+            粤公网安备44195402000128号
+          </a>
+          <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">
+            粤ICP备2026082654号
+          </a>
+        </p>
+      </footer>
+    </section>
   </div>
 </template>
 
@@ -72,8 +103,23 @@ export default {
         username: '',
         password: ''
       },
+      loading: false,
       User: markRaw(User),
-      Lock: markRaw(Lock)
+      Lock: markRaw(Lock),
+      features: [
+        {
+          text: '故障记录结构化检索',
+          icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>'
+        },
+        {
+          text: '可视化排查流程引导',
+          icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="5" cy="6" r="2.5"/><circle cx="19" cy="6" r="2.5"/><circle cx="12" cy="18" r="2.5"/><path d="M7.5 6h9M6.2 8.2l4 7.3M17.8 8.2l-4 7.3"/></svg>'
+        },
+        {
+          text: '批量导入与数据统计',
+          icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>'
+        }
+      ]
     }
   },
   methods: {
@@ -82,6 +128,8 @@ export default {
         username = this.loginForm.username
         password = this.loginForm.password
       }
+      if (this.loading) return
+      this.loading = true
       try {
         const res = await request.post('/login', {
           username: username,
@@ -113,6 +161,8 @@ export default {
           type: 'error',
           duration: 1500
         })
+      } finally {
+        this.loading = false
       }
     },
     handleGuestLogin() {
@@ -123,63 +173,178 @@ export default {
 </script>
 
 <style scoped>
-.page-wrapper {
-  min-height: 100vh;
+.login-wrapper {
   display: flex;
-  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
 }
 
-.site-header {
-  background: var(--oc-primary-bg, #f0f5ff);
-  padding: 14px 24px;
-  text-align: center;
-  border-bottom: 1px solid var(--oc-border, #d0dff0);
-}
-
-.site-name {
-  margin: 0;
-  color: var(--oc-title, #1a3a6e);
-  font-size: 22px;
-  font-weight: 600;
-  letter-spacing: 3px;
-}
-
-.image-container {
-  flex: 1;
+/* ===== 左侧品牌区（55%） ===== */
+.brand-pane {
+  width: 55%;
+  position: relative;
+  background:
+    radial-gradient(circle at 78% 18%, rgba(6, 182, 212, 0.28), transparent 55%),
+    linear-gradient(160deg, var(--oc-navy-950) 0%, var(--oc-navy-800) 55%, #14418C 100%);
   display: flex;
-  justify-content: center;
   align-items: center;
   overflow: hidden;
+}
+
+/* 48px 网格线装饰 */
+.brand-pane::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+  pointer-events: none;
+}
+
+.brand-content {
+  position: relative;
+  margin-left: 8%;
+  max-width: 520px;
+  padding-bottom: 4vh;
+}
+
+.brand-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 40px;
+}
+
+.brand-mark {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--oc-blue-500), var(--oc-cyan-500));
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.brand-name {
+  color: #fff;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 2px;
+}
+
+.brand-title {
+  margin: 0;
+  color: #fff;
+  font-size: 40px;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: 1px;
+}
+
+.brand-subtitle {
+  margin: 16px 0 0;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 16px;
+}
+
+.feature-list {
+  list-style: none;
+  margin: 40px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.feature-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.feature-icon {
+  display: flex;
+  align-items: center;
+  color: var(--oc-cyan-500);
+  flex-shrink: 0;
+}
+
+.feature-text {
+  color: #fff;
+  font-size: 14px;
+}
+
+/* 小程序码：左下角 */
+.mini-qr {
+  position: absolute;
+  left: 8%;
+  bottom: 40px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  z-index: 1;
+}
+
+.mini-qr-img {
+  width: 64px;
+  height: 64px;
+  border-radius: 8px;
+  background: #fff;
+  padding: 4px;
+  box-sizing: border-box;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.mini-qr-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mini-qr-text p {
+  margin: 0;
+  color: #fff;
+  font-size: 12px;
+}
+
+.mini-qr-text .mini-qr-sub {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 12px;
+}
+
+/* ===== 右侧登录区（45%） ===== */
+.form-pane {
+  width: 45%;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   position: relative;
 }
 
-.image-container img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+.login-form {
+  width: 360px;
+  max-width: calc(100% - 64px);
 }
 
-.login-panel {
-  position: absolute;
-  right: 8%;
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 10;
-  background: rgba(255, 255, 255, 0.92);
-  border-radius: var(--oc-radius-lg, 12px);
-  padding: 36px 32px;
-  width: 340px;
-  box-shadow: var(--oc-shadow-lg, 0 8px 32px rgba(26, 58, 110, 0.25));
-  backdrop-filter: blur(8px);
-}
-
-.login-title {
-  margin: 0 0 28px 0;
-  font-size: 20px;
+.form-title {
+  margin: 0;
+  font-size: 24px;
   font-weight: 600;
-  color: var(--oc-title, #1a3a6e);
-  text-align: center;
-  letter-spacing: 2px;
+  color: var(--oc-gray-900);
+}
+
+.form-subtitle {
+  margin: 8px 0 32px;
+  font-size: 13px;
+  color: var(--oc-gray-400);
 }
 
 .form-group {
@@ -188,48 +353,70 @@ export default {
 
 .form-group label {
   display: block;
-  margin-bottom: 8px;
-  font-size: 14px;
-  color: var(--oc-title, #1a3a6e);
+  margin-bottom: 6px;
+  font-size: 13px;
   font-weight: 500;
+  color: var(--oc-gray-700);
+}
+
+/* 输入框 44px 高 */
+.form-group :deep(.el-input__wrapper) {
+  height: 44px;
+  padding: 0 14px;
+  box-sizing: border-box;
+}
+
+.form-group :deep(.el-input__prefix) {
+  color: var(--oc-gray-400);
 }
 
 .btn-login {
   width: 100%;
+  height: 44px;
   margin-top: 8px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
   letter-spacing: 4px;
-  font-size: 16px;
-  font-weight: 500;
 }
 
 .guest-link {
   text-align: center;
   margin-top: 16px;
+  font-size: 14px;
 }
 
-.footer-record {
+/* 页脚版权行 */
+.page-footer {
+  position: absolute;
+  bottom: 16px;
+  left: 0;
+  right: 0;
   text-align: center;
-  padding: 12px 0;
-  background: var(--oc-primary-bg, #f0f5ff);
-  color: var(--oc-primary-dark, #1a5fb4);
   font-size: 12px;
-  line-height: 1.6;
+  color: var(--oc-gray-400);
+  line-height: 1.8;
 }
 
-.footer-record p:last-child {
+.page-footer p {
+  margin: 0;
+}
+
+.record-links {
   display: flex;
   justify-content: center;
   align-items: center;
   gap: 12px;
+  flex-wrap: wrap;
 }
 
-.footer-record a {
-  color: var(--oc-primary-dark, #1a5fb4);
+.page-footer a {
+  color: var(--oc-gray-400);
   text-decoration: none;
 }
 
-.footer-record a:hover {
-  text-decoration: underline;
+.page-footer a:hover {
+  color: var(--oc-blue-600);
 }
 
 .record-gongan {
@@ -239,8 +426,18 @@ export default {
 }
 
 .record-gongan img {
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   object-fit: contain;
+}
+
+/* 窄屏兜底：收起品牌区 */
+@media (max-width: 900px) {
+  .brand-pane {
+    display: none;
+  }
+  .form-pane {
+    width: 100%;
+  }
 }
 </style>

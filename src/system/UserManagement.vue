@@ -6,41 +6,65 @@
     </div>
 
     <div class="content-card">
-      <!-- 工具栏：搜索 + 新增 -->
+      <!-- 工具条：搜索 + 新增 -->
       <div class="toolbar">
-        <el-form :inline="true" :model="searchForm" class="search-form">
-          <el-form-item label="用户名">
-            <el-input
-              v-model="searchForm.username"
-              placeholder="请输入用户名"
-              clearable
-              @clear="handleSearch"
-            />
-          </el-form-item>
-          <el-form-item>
-            <el-button type="primary" @click="handleSearch">搜索</el-button>
-          </el-form-item>
-        </el-form>
-        <el-button type="primary" @click="openAddDialog">+ 新增用户</el-button>
+        <el-input
+          v-model="searchForm.username"
+          placeholder="请输入用户名"
+          clearable
+          class="search-input"
+          :prefix-icon="Search"
+          @clear="handleSearch"
+          @keyup.enter="handleSearch"
+        />
+        <el-button type="primary" class="add-btn" :icon="Plus" @click="openAddDialog">新增用户</el-button>
       </div>
 
       <!-- 用户表格 -->
-      <el-table :data="tableData" border v-loading="loading" style="width: 100%">
-        <el-table-column prop="username" label="用户名" min-width="140" align="center" />
+      <el-table :data="tableData" v-loading="loading" style="width: 100%">
+        <el-table-column label="用户名" min-width="180">
+          <template #default="{ row }">
+            <div class="user-cell">
+              <span class="user-avatar" :style="{ background: avatarColor(row.username) }">
+                {{ (row.username || '?').charAt(0).toUpperCase() }}
+              </span>
+              <span class="user-name">{{ row.username }}</span>
+            </div>
+          </template>
+        </el-table-column>
         <el-table-column prop="name" label="使用者" min-width="140" align="center" />
-        <el-table-column prop="createTime" label="创建时间" min-width="180" align="center" />
-        <el-table-column prop="createTime" label="创建时间" min-width="180" align="center" />
+        <el-table-column label="创建时间" min-width="180" align="center">
+          <template #default="{ row }">
+            <span class="time-text">{{ row.createTime }}</span>
+          </template>
+        </el-table-column>
         <el-table-column label="权限" min-width="140" align="center">
           <template #default="{ row }">
-            <el-tag :type="privilegeTagType(row.privilege)">{{ privilegeText(row.privilege) }}</el-tag>
+            <span class="priv-tag" :class="privilegeTagClass(row.privilege)">{{ privilegeText(row.privilege) }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="170" align="center">
+        <el-table-column label="操作" width="160" align="center">
           <template #default="{ row }">
-            <el-button size="small" type="primary" text @click="openPasswordDialog(row)">修改密码</el-button>
-            <el-button size="small" type="danger" text @click="handleDelete(row)">删除</el-button>
+            <button class="table-action-btn action-primary" @click="openPasswordDialog(row)">修改密码</button>
+            <button class="table-action-btn action-danger" @click="handleDelete(row)">删除</button>
           </template>
         </el-table-column>
+        <template #empty>
+          <div class="table-empty">
+            <div class="table-empty-illustration">
+              <svg viewBox="0 0 120 120" fill="none">
+                <rect x="28" y="20" width="48" height="60" rx="6" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="2.5"/>
+                <line x1="38" y1="34" x2="66" y2="34" stroke="#E2E8F0" stroke-width="2.5" stroke-linecap="round"/>
+                <line x1="38" y1="44" x2="66" y2="44" stroke="#E2E8F0" stroke-width="2.5" stroke-linecap="round"/>
+                <line x1="38" y1="54" x2="56" y2="54" stroke="#E2E8F0" stroke-width="2.5" stroke-linecap="round"/>
+                <circle cx="72" cy="66" r="16" fill="#fff" stroke="#93C5FD" stroke-width="3"/>
+                <line x1="83" y1="77" x2="94" y2="88" stroke="#93C5FD" stroke-width="3.5" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <p class="table-empty-title">未找到匹配用户</p>
+            <p class="table-empty-sub">换个用户名关键词试试</p>
+          </div>
+        </template>
       </el-table>
 
       <!-- 分页 -->
@@ -58,9 +82,9 @@
       </div>
     </div>
 
-    <!-- 新增用户弹窗 -->
+    <!-- 新增用户弹窗（label 置顶规范） -->
     <el-dialog v-model="addDialogVisible" title="新增用户" width="480px" :close-on-click-modal="false">
-      <el-form :model="addForm" :rules="addRules" ref="addFormRef" label-width="80px">
+      <el-form :model="addForm" :rules="addRules" ref="addFormRef" label-position="top">
         <el-form-item label="用户名" prop="username">
           <el-input v-model="addForm.username" placeholder="请输入用户名" />
         </el-form-item>
@@ -84,9 +108,9 @@
       </template>
     </el-dialog>
 
-    <!-- 修改密码弹窗 -->
+    <!-- 修改密码弹窗（label 置顶规范） -->
     <el-dialog v-model="passwordDialogVisible" title="修改密码" width="400px" :close-on-click-modal="false">
-      <el-form :model="passwordForm" :rules="passwordRules" ref="passwordFormRef" label-width="100px">
+      <el-form :model="passwordForm" :rules="passwordRules" ref="passwordFormRef" label-position="top">
         <el-form-item label="密码" prop="password">
           <el-input v-model="passwordForm.password" type="password" placeholder="请输入当前密码" show-password />
         </el-form-item>
@@ -103,8 +127,13 @@
 </template>
 
 <script>
+import { markRaw } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Search, Plus } from '@element-plus/icons-vue'
 import request from '@/utils/request'
+
+// 头像色板（按用户名 hash 取色）
+const AVATAR_PALETTE = ['#2563EB', '#06B6D4', '#8B5CF6', '#F59E0B', '#10B981', '#F97316']
 
 export default {
   name: 'UserManagementPage',
@@ -154,7 +183,9 @@ export default {
           { required: true, message: '请输入新密码', trigger: 'blur' },
           { validator: this.validateNewPassword, trigger: 'blur' }
         ]
-      }
+      },
+      Search: markRaw(Search),
+      Plus: markRaw(Plus)
     }
   },
   created() {
@@ -165,9 +196,17 @@ export default {
       const map = { 1: '仅查询', 2: '查询与上传', 3: '所有权限' }
       return map[value] || '未知'
     },
-    privilegeTagType(value) {
-      const map = { 1: 'info', 2: 'success', 3: 'danger' }
-      return map[value] || 'info'
+    privilegeTagClass(value) {
+      const map = { 1: 'priv-normal', 2: 'priv-advanced', 3: 'priv-admin' }
+      return map[value] || 'priv-normal'
+    },
+    avatarColor(username) {
+      const name = String(username || '')
+      let hash = 0
+      for (let i = 0; i < name.length; i++) {
+        hash = (hash * 31 + name.charCodeAt(i)) >>> 0
+      }
+      return AVATAR_PALETTE[hash % AVATAR_PALETTE.length]
     },
     async fetchUsers() {
       this.loading = true
@@ -275,8 +314,7 @@ export default {
         cancelButtonText: '取消',
         type: 'warning'
       }).then(() => {
-        // 后端接口完成后替换为真实请求
-        request.delete('/users', { params: { id: row.id } }).then(res => { 
+        request.delete('/users', { params: { id: row.id } }).then(res => {
           if (res.data.code === 1) {
             ElMessage.success('删除成功')
             this.fetchUsers()
@@ -286,7 +324,6 @@ export default {
         }).catch(() => {
           ElMessage.error('删除失败')
         })
-        this.fetchUsers()
       }).catch(() => {})
     },
     formatDateTime(value) {
@@ -317,40 +354,156 @@ export default {
 
 .page-title {
   margin: 0;
-  font-size: 20px;
+  font-size: var(--oc-text-2xl);
   font-weight: 600;
-  color: #1a3a6e;
+  color: var(--oc-gray-900);
 }
 
 .page-subtitle {
   margin: 6px 0 0;
-  font-size: 13px;
-  color: #999;
+  font-size: var(--oc-text-sm);
+  color: var(--oc-gray-400);
 }
 
 .content-card {
-  background: #fff;
-  border-radius: 10px;
-  padding: 24px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  background: var(--oc-bg-white);
+  border: var(--oc-card-border);
+  border-radius: var(--oc-radius-md);
+  padding: 16px 20px 20px;
+  box-shadow: var(--oc-shadow-sm);
 }
 
+/* 工具条 */
 .toolbar {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 20px;
+  align-items: center;
+  margin-bottom: 16px;
 }
 
-.search-form {
+.search-input {
+  width: 260px;
+}
+
+/* 用户名列：首字母头像 */
+.user-cell {
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
   gap: 10px;
+}
+
+.user-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.user-name {
+  font-size: var(--oc-text-md);
+  color: var(--oc-gray-900);
+  font-weight: 500;
+}
+
+/* 创建时间：13px 次要文字 + 等宽数字 */
+.time-text {
+  font-size: var(--oc-text-sm);
+  color: var(--oc-gray-500);
+  font-feature-settings: "tnum";
+}
+
+/* 权限标签：柔和风（1 灰 / 2 蓝 / 3 琥珀金） */
+.priv-tag {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: var(--oc-radius-sm);
+  font-size: var(--oc-text-xs);
+  font-weight: 500;
+}
+
+.priv-tag.priv-normal {
+  background: var(--oc-info-bg);
+  color: var(--oc-gray-500);
+}
+
+.priv-tag.priv-advanced {
+  background: var(--oc-blue-50);
+  color: var(--oc-blue-700);
+}
+
+.priv-tag.priv-admin {
+  background: var(--oc-warning-bg);
+  color: #B45309;
+}
+
+/* 操作列文字按钮 */
+.table-action-btn {
+  padding: 4px 6px;
+  font-size: var(--oc-text-sm);
+  background: none;
+  border: none;
+  border-radius: var(--oc-radius-sm);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.action-primary {
+  color: var(--oc-blue-600);
+}
+
+.action-primary:hover {
+  background: var(--oc-blue-50);
+}
+
+.action-danger {
+  color: var(--oc-danger);
+}
+
+.action-danger:hover {
+  background: var(--oc-danger-bg);
+}
+
+/* 表格空状态 */
+.table-empty {
+  padding: 36px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.table-empty-illustration {
+  width: 96px;
+  height: 96px;
+  margin-bottom: 12px;
+}
+
+.table-empty-illustration svg {
+  width: 100%;
+  height: 100%;
+}
+
+.table-empty-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--oc-gray-700);
+}
+
+.table-empty-sub {
+  margin: 6px 0 0;
+  font-size: var(--oc-text-sm);
+  color: var(--oc-gray-400);
 }
 
 .pagination-wrapper {
   display: flex;
   justify-content: flex-end;
-  margin-top: 20px;
+  margin-top: 16px;
 }
 </style>

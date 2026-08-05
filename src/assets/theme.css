@@ -1,81 +1,342 @@
 /**
- * OCSKILL-FE 项目主题变量
+ * OCSKILL-FE 项目主题变量（Design Tokens）
+ * v2.0「深海蓝 · 工程感知识工具」
  * PC + H5 共用，统一配色，消除硬编码
+ * 迁移策略：保留旧 --oc-* 变量名、仅替换其值，新增扩展变量
  */
 :root {
-  /* 主色 */
-  --oc-primary: #3584e4;
-  --oc-primary-dark: #1a5fb4;
-  --oc-primary-deeper: #14478a;
-  --oc-primary-light: #5fb0e6;
-  --oc-primary-lighter: #87ceeb;
+  /* ===== 品牌蓝色阶（Ocean Blue）：主操作、链接、选中态 ===== */
+  --oc-blue-50:  #EFF6FF;
+  --oc-blue-100: #DBEAFE;
+  --oc-blue-200: #BFDBFE;
+  --oc-blue-300: #93C5FD;
+  --oc-blue-400: #60A5FA;
+  --oc-blue-500: #3B82F6;
+  --oc-blue-600: #2563EB;   /* 主色：按钮/链接 */
+  --oc-blue-700: #1D4ED8;   /* hover */
+  --oc-blue-800: #1E40AF;   /* active */
+  --oc-blue-900: #1E3A8A;
 
-  /* 文字 */
-  --oc-title: #1a3a6e;
-  --oc-text: #46587a;
-  --oc-text-light: #8a94a6;
-  --oc-text-placeholder: #b8c2d4;
+  /* 深海军蓝：侧边栏/登录品牌区专用 */
+  --oc-navy-700: #16335C;
+  --oc-navy-800: #10254A;
+  --oc-navy-900: #0B1B36;   /* 侧边栏主底色 */
+  --oc-navy-950: #081426;
 
-  /* 背景 */
-  --oc-bg: #f5f7fa;
-  --oc-bg-soft: #fafbfc;
-  --oc-bg-white: #ffffff;
+  /* 辅助青：海洋感点缀，仅用于图表/标签装饰 */
+  --oc-cyan-500: #06B6D4;
 
-  /* 边框 */
-  --oc-border: #eef1f6;
-  --oc-border-light: #f0f0f0;
-  --oc-border-input: #d0d5dd;
+  /* ===== 中性色阶（界面骨架） ===== */
+  --oc-gray-50:  #F8FAFC;   /* 页面背景 */
+  --oc-gray-100: #F1F5F9;   /* 输入框/表头底色、hover 底 */
+  --oc-gray-200: #E2E8F0;   /* 边框（强） */
+  --oc-gray-300: #CBD5E1;   /* 占位/禁用 */
+  --oc-gray-400: #94A3B8;   /* 辅助文字 */
+  --oc-gray-500: #64748B;   /* 次要文字 */
+  --oc-gray-700: #334155;   /* 正文 */
+  --oc-gray-900: #0F172A;   /* 标题 */
 
-  /* 功能色 */
-  --oc-success: #19be6b;
-  --oc-warning: #ff9900;
-  --oc-danger: #ed4014;
-  --oc-danger-dark: #d03020;
-  --oc-info: #909399;
+  /* ===== 语义色 ===== */
+  --oc-success:      #10B981;
+  --oc-success-bg:   #ECFDF5;
+  --oc-warning:      #F59E0B;
+  --oc-warning-bg:   #FFFBEB;
+  --oc-danger:       #EF4444;
+  --oc-danger-bg:    #FEF2F2;
+  --oc-info:         #64748B;
+  --oc-info-bg:      #F1F5F9;
 
-  /* 功能色浅底 */
-  --oc-success-bg: #ecf9f1;
-  --oc-warning-bg: #fff7e6;
-  --oc-danger-bg: #fef0f0;
-  --oc-primary-bg: #f0f5ff;
+  /* ===== 旧变量映射（兼容层，直接改值） ===== */
+  --oc-primary:         var(--oc-blue-600);
+  --oc-primary-dark:    var(--oc-blue-700);
+  --oc-primary-deeper:  var(--oc-blue-800);
+  --oc-primary-light:   var(--oc-blue-400);
+  --oc-primary-lighter: var(--oc-blue-200);
+  --oc-primary-bg:      var(--oc-blue-50);
 
-  /* 圆角 */
-  --oc-radius: 10px;
-  --oc-radius-lg: 12px;
-  --oc-radius-sm: 8px;
+  --oc-title:           var(--oc-gray-900);
+  --oc-text:            var(--oc-gray-700);
+  --oc-text-light:      var(--oc-gray-400);
+  --oc-text-placeholder: var(--oc-gray-300);
+
+  --oc-bg:              var(--oc-gray-50);
+  --oc-bg-white:        #FFFFFF;
+  --oc-bg-soft:         var(--oc-gray-100);
+
+  --oc-border:          var(--oc-gray-200);
+  --oc-border-light:    #EAEFF5;
+  --oc-border-input:    var(--oc-gray-300);
+
+  --oc-danger-dark:     #DC2626;
+
+  /* ===== 圆角 ===== */
+  --oc-radius-sm:   6px;    /* 标签、小按钮 */
+  --oc-radius:      8px;    /* 输入框、按钮 */
+  --oc-radius-md:   12px;   /* 卡片 */
+  --oc-radius-lg:   16px;   /* 弹窗、大容器 */
   --oc-radius-pill: 20px;
 
-  /* 阴影 */
-  --oc-shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.04);
-  --oc-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  --oc-shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.16);
+  /* ===== 阴影：灰蓝色调，不用纯黑阴影 ===== */
+  --oc-shadow-sm:    0 1px 2px rgba(15, 23, 42, 0.05);
+  --oc-shadow:       0 1px 3px rgba(15, 23, 42, 0.06), 0 4px 12px rgba(15, 23, 42, 0.05);
+  --oc-shadow-lg:    0 8px 24px rgba(15, 23, 42, 0.12);
+  --oc-shadow-hover: 0 4px 8px rgba(15, 23, 42, .06), 0 12px 28px rgba(15, 23, 42, .10);
 
-  /* 过渡 */
-  --oc-transition: all 0.2s;
+  /* 卡片默认用 1px 描边 + 最轻阴影，不再单靠阴影分层 */
+  --oc-card-border: 1px solid var(--oc-gray-200);
+
+  /* ===== 字体与字阶 ===== */
+  --oc-font-family: "Inter", -apple-system, "PingFang SC",
+                    "Microsoft YaHei", "Helvetica Neue", sans-serif;
+
+  --oc-text-xs:  12px;  /* 辅助说明、标签 */
+  --oc-text-sm:  13px;  /* 表格次要信息、卡片辅助 */
+  --oc-text-md:  14px;  /* 正文、表单 */
+  --oc-text-lg:  16px;  /* 卡片标题、区块标题 */
+  --oc-text-xl:  18px;  /* 弹窗标题 */
+  --oc-text-2xl: 22px;  /* 页面标题 */
+  --oc-text-3xl: 28px;  /* 数据大字 */
+
+  --oc-leading-tight: 1.35;
+  --oc-leading: 1.6;
+
+  /* ===== 过渡 ===== */
+  --oc-transition: all 0.2s ease;
+
+  /* ===== Element Plus 整体换肤（CSS 变量官方方式） ===== */
+  --el-color-primary:         var(--oc-blue-600);
+  --el-color-primary-light-3: var(--oc-blue-400);
+  --el-color-primary-light-5: var(--oc-blue-300);
+  --el-color-primary-light-7: var(--oc-blue-200);
+  --el-color-primary-light-8: var(--oc-blue-100);
+  --el-color-primary-light-9: var(--oc-blue-50);
+  --el-color-primary-dark-2:  var(--oc-blue-700);
+  --el-color-success: var(--oc-success);
+  --el-color-warning: var(--oc-warning);
+  --el-color-danger:  var(--oc-danger);
+  --el-color-error:   var(--oc-danger);
+
+  --el-text-color-primary:     var(--oc-gray-900);
+  --el-text-color-regular:     var(--oc-gray-700);
+  --el-text-color-secondary:   var(--oc-gray-500);
+  --el-text-color-placeholder: var(--oc-gray-400);
+  --el-border-color:          var(--oc-gray-200);
+  --el-border-color-light:    var(--oc-gray-200);
+  --el-border-color-lighter:  #EAEFF5;
+  --el-fill-color-light:      var(--oc-gray-100);
+
+  --el-border-radius-base:  8px;
+  --el-border-radius-small: 6px;
+  --el-font-size-base: 14px;
+  --el-component-size: 36px;
+
+  --el-box-shadow:       var(--oc-shadow);
+  --el-box-shadow-light: var(--oc-shadow-sm);
+
+  /* ===== 时段主题变量（默认 = 夜晚，保持现有视觉） ===== */
+  /* 首页 Hero / H5 品牌区 */
+  --oc-hero-bg: radial-gradient(circle at 78% 18%, rgba(6, 182, 212, 0.22), transparent 55%),
+    linear-gradient(160deg, var(--oc-navy-950) 0%, var(--oc-navy-800) 55%, #14418C 100%);
+  --oc-hero-text:           #FFFFFF;
+  --oc-hero-text-secondary: rgba(255, 255, 255, 0.6);
+  --oc-hero-text-muted:     rgba(255, 255, 255, 0.4);
+  --oc-hero-capsule-hover:  rgba(255, 255, 255, 0.1);
+  --oc-hero-grid:           rgba(255, 255, 255, 0.04);
+  --oc-hero-wave-back:      rgba(255, 255, 255, 0.05);
+  --oc-hero-wave-front:     rgba(6, 182, 212, 0.08);
+  --oc-hero-sonar-ring:     rgba(6, 182, 212, 0.5);
+  --oc-hero-btn-bg:         rgba(255, 255, 255, 0.12);
+  --oc-hero-btn-border:     rgba(255, 255, 255, 0.25);
+  --oc-hero-btn-text:       #FFFFFF;
+
+  /* 系统侧边栏 */
+  --oc-sidebar-bg:          linear-gradient(180deg, var(--oc-navy-900), var(--oc-navy-800));
+  --oc-sidebar-text:        rgba(255, 255, 255, 0.65);
+  --oc-sidebar-text-strong: #FFFFFF;
+  --oc-sidebar-text-sub:    rgba(255, 255, 255, 0.45);
+  --oc-sidebar-hover-bg:    rgba(255, 255, 255, 0.06);
+  --oc-sidebar-active-bg:   rgba(59, 130, 246, 0.18);
+  --oc-sidebar-active-icon: var(--oc-blue-300);
+  --oc-sidebar-border:      rgba(255, 255, 255, 0.08);
+
+  /* 个人中心横幅 */
+  --oc-banner-bg:   linear-gradient(135deg, var(--oc-navy-800), var(--oc-blue-700));
+  --oc-banner-glow: radial-gradient(circle at 82% 18%, rgba(6, 182, 212, 0.22), transparent 55%);
+
+  /* 系统顶栏 + 内容区底色（主题做画框，工作区保明亮） */
+  --oc-topbar-bg:            var(--oc-navy-900);
+  --oc-topbar-text:          #FFFFFF;
+  --oc-topbar-text-secondary: rgba(255, 255, 255, 0.5);
+  --oc-topbar-capsule-hover: rgba(255, 255, 255, 0.1);
+  --oc-topbar-border:        transparent;
+  --oc-content-bg:           #EDF1F8;
 }
 
-/* 让 el-button 主色与项目主色一致 */
-.el-button--primary {
-  --el-button-bg-color: var(--oc-primary);
-  --el-button-border-color: var(--oc-primary);
-  --el-button-hover-bg-color: var(--oc-primary-dark);
-  --el-button-hover-border-color: var(--oc-primary-dark);
-  --el-button-active-bg-color: var(--oc-primary-deeper);
-  --el-button-active-border-color: var(--oc-primary-deeper);
+/* 清晨 05:00-11:00 */
+.theme-morning {
+  --oc-hero-bg: radial-gradient(circle at 80% 14%, rgba(251, 191, 36, 0.3), transparent 50%),
+    linear-gradient(165deg, #7DD3FC 0%, #BAE6FD 55%, #E0F2FE 100%);
+  --oc-hero-text:           var(--oc-gray-900);
+  --oc-hero-text-secondary: rgba(15, 23, 42, 0.62);
+  --oc-hero-text-muted:     rgba(15, 23, 42, 0.45);
+  --oc-hero-capsule-hover:  rgba(15, 23, 42, 0.08);
+  --oc-hero-grid:           rgba(15, 23, 42, 0.05);
+  --oc-hero-wave-back:      rgba(255, 255, 255, 0.55);
+  --oc-hero-wave-front:     rgba(2, 132, 199, 0.16);
+  --oc-hero-sonar-ring:     rgba(37, 99, 235, 0.4);
+  --oc-hero-btn-bg:         rgba(255, 255, 255, 0.55);
+  --oc-hero-btn-border:     rgba(15, 23, 42, 0.15);
+  --oc-hero-btn-text:       var(--oc-gray-900);
+
+  --oc-sidebar-bg:          linear-gradient(180deg, #E2EEFB, #D2E4F9);
+  --oc-sidebar-text:        rgba(15, 23, 42, 0.62);
+  --oc-sidebar-text-strong: var(--oc-gray-900);
+  --oc-sidebar-text-sub:    rgba(15, 23, 42, 0.45);
+  --oc-sidebar-hover-bg:    rgba(15, 23, 42, 0.06);
+  --oc-sidebar-active-bg:   rgba(37, 99, 235, 0.14);
+  --oc-sidebar-active-icon: var(--oc-blue-600);
+  --oc-sidebar-border:      rgba(15, 23, 42, 0.1);
+
+  --oc-banner-bg:   linear-gradient(135deg, #0EA5E9, var(--oc-blue-600));
+  --oc-banner-glow: radial-gradient(circle at 82% 18%, rgba(255, 255, 255, 0.35), transparent 55%);
+
+  --oc-topbar-bg:            #F2F8FE;
+  --oc-topbar-text:          var(--oc-gray-900);
+  --oc-topbar-text-secondary: var(--oc-gray-400);
+  --oc-topbar-capsule-hover: rgba(15, 23, 42, 0.06);
+  --oc-topbar-border:        var(--oc-gray-200);
+  --oc-content-bg:           #F3F9FE;
 }
 
-/* el-dialog 标题色 */
-.el-dialog__title {
-  color: var(--oc-title);
+/* 白日 11:00-17:00（与清晨同族，更亮一档） */
+.theme-day {
+  --oc-hero-bg: radial-gradient(circle at 80% 14%, rgba(253, 224, 71, 0.35), transparent 50%),
+    linear-gradient(160deg, #38BDF8 0%, #7DD3FC 55%, #E0F2FE 100%);
+  --oc-hero-text:           var(--oc-gray-900);
+  --oc-hero-text-secondary: rgba(15, 23, 42, 0.62);
+  --oc-hero-text-muted:     rgba(15, 23, 42, 0.45);
+  --oc-hero-capsule-hover:  rgba(15, 23, 42, 0.08);
+  --oc-hero-grid:           rgba(15, 23, 42, 0.05);
+  --oc-hero-wave-back:      rgba(255, 255, 255, 0.55);
+  --oc-hero-wave-front:     rgba(2, 132, 199, 0.2);
+  --oc-hero-sonar-ring:     rgba(37, 99, 235, 0.4);
+  --oc-hero-btn-bg:         rgba(255, 255, 255, 0.55);
+  --oc-hero-btn-border:     rgba(15, 23, 42, 0.15);
+  --oc-hero-btn-text:       var(--oc-gray-900);
+
+  --oc-sidebar-bg:          linear-gradient(180deg, #D8E9FC, #C7DFFB);
+  --oc-sidebar-text:        rgba(15, 23, 42, 0.62);
+  --oc-sidebar-text-strong: var(--oc-gray-900);
+  --oc-sidebar-text-sub:    rgba(15, 23, 42, 0.45);
+  --oc-sidebar-hover-bg:    rgba(15, 23, 42, 0.06);
+  --oc-sidebar-active-bg:   rgba(37, 99, 235, 0.14);
+  --oc-sidebar-active-icon: var(--oc-blue-600);
+  --oc-sidebar-border:      rgba(15, 23, 42, 0.1);
+
+  --oc-banner-bg:   linear-gradient(135deg, var(--oc-blue-600), var(--oc-blue-800));
+  --oc-banner-glow: radial-gradient(circle at 82% 18%, rgba(255, 255, 255, 0.3), transparent 55%);
+
+  --oc-topbar-bg:            #EDF5FE;
+  --oc-topbar-text:          var(--oc-gray-900);
+  --oc-topbar-text-secondary: var(--oc-gray-400);
+  --oc-topbar-capsule-hover: rgba(15, 23, 42, 0.06);
+  --oc-topbar-border:        var(--oc-gray-200);
+  --oc-content-bg:           #EFF6FF;
 }
 
-/* el-input focus 色与主色一致 */
-.el-input__wrapper.is-focus,
+/* 傍晚 17:00-19:00（侧边栏沿用深色，仅 Hero/横幅换暖色） */
+.theme-dusk {
+  --oc-hero-bg: radial-gradient(circle at 50% 88%, rgba(251, 146, 60, 0.45), transparent 55%),
+    linear-gradient(178deg, #1E1B4B 0%, #4C1D95 38%, #9A3412 72%, #C2410C 100%);
+  --oc-hero-text:           #FFFFFF;
+  --oc-hero-text-secondary: rgba(255, 255, 255, 0.65);
+  --oc-hero-text-muted:     rgba(255, 255, 255, 0.45);
+  --oc-hero-capsule-hover:  rgba(255, 255, 255, 0.1);
+  --oc-hero-grid:           rgba(255, 255, 255, 0.05);
+  --oc-hero-wave-back:      rgba(255, 255, 255, 0.06);
+  --oc-hero-wave-front:     rgba(251, 146, 60, 0.14);
+  --oc-hero-sonar-ring:     rgba(251, 191, 36, 0.5);
+  --oc-hero-btn-bg:         rgba(255, 255, 255, 0.14);
+  --oc-hero-btn-border:     rgba(255, 255, 255, 0.28);
+  --oc-hero-btn-text:       #FFFFFF;
+
+  --oc-banner-bg:   linear-gradient(135deg, #4C1D95, #C2410C);
+  --oc-banner-glow: radial-gradient(circle at 82% 18%, rgba(251, 146, 60, 0.35), transparent 55%);
+
+  --oc-sidebar-bg:          linear-gradient(180deg, #1E1B4B, #312E81);
+  --oc-topbar-bg:           #1E1B4B;
+  --oc-topbar-text:          #FFFFFF;
+  --oc-topbar-text-secondary: rgba(255, 255, 255, 0.5);
+  --oc-topbar-capsule-hover: rgba(255, 255, 255, 0.12);
+  --oc-topbar-border:        transparent;
+  --oc-content-bg:           #F7F4F0;
+}
+
+body {
+  font-family: var(--oc-font-family);
+}
+
+/* ===== Element Plus 组件级微调 ===== */
+
+/* el-button：字重 500，主色纯实底（hover/active 由 light/dark 变量自动完成） */
+.el-button {
+  font-weight: 500;
+}
+
+/* el-input / el-textarea：focus 蓝边 + 3px 浅蓝光晕 */
+.el-input__wrapper.is-focus {
+  box-shadow: 0 0 0 1px var(--el-color-primary) inset, 0 0 0 3px var(--oc-blue-100) !important;
+}
 .el-textarea__inner:focus {
-  box-shadow: 0 0 0 1px var(--oc-primary) inset !important;
+  box-shadow: 0 0 0 1px var(--el-color-primary) inset, 0 0 0 3px var(--oc-blue-100) !important;
+}
+.el-select__wrapper.is-focused {
+  box-shadow: 0 0 0 1px var(--el-color-primary) inset, 0 0 0 3px var(--oc-blue-100) !important;
 }
 
-/* el-pagination 激活色 */
+/* el-dialog：圆角 16px、头部分隔线、标题 18px/600 */
+.el-dialog {
+  border-radius: var(--oc-radius-lg);
+}
+.el-dialog__header {
+  padding: 20px 24px;
+  margin-right: 0;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+.el-dialog__title {
+  font-size: var(--oc-text-xl);
+  font-weight: 600;
+  color: var(--oc-gray-900);
+}
+.el-dialog__body {
+  padding: 24px;
+}
+
+/* el-table：表头灰底 13px/600，行 hover 浅灰 */
+.el-table th.el-table__cell {
+  background: var(--oc-gray-100);
+  color: var(--oc-gray-500);
+  font-size: var(--oc-text-sm);
+  font-weight: 600;
+}
+.el-table .el-table__row:hover > td.el-table__cell {
+  background: var(--oc-gray-50);
+}
+
+/* el-pagination：页码圆角 6px，选中实心与主色一致 */
+.el-pagination.is-background .el-pager li {
+  border-radius: var(--oc-radius-sm);
+}
 .el-pagination.is-background .el-pager li.is-active {
-  background-color: var(--oc-primary);
+  background-color: var(--oc-blue-600);
+}
+
+/* el-message / el-message-box：圆角 12px + 大阴影 */
+.el-message {
+  border-radius: var(--oc-radius-md);
+  box-shadow: var(--oc-shadow-lg);
+}
+.el-message-box {
+  border-radius: var(--oc-radius-md);
+  box-shadow: var(--oc-shadow-lg);
 }

@@ -12,18 +12,20 @@ OCSKILL 技术知识查询系统前端，支持 PC + H5 双端适配，涵盖登
 | UI 组件库 | Element Plus |
 | 网络请求 | Axios（二次封装） |
 | 图表库 | ECharts |
+| 流程图 | @vue-flow/core + background + controls |
 | Excel 解析 | SheetJS (xlsx) + JSZip |
-| 样式 | 原生 CSS / scoped |
+| 样式 | 原生 CSS / scoped（Design Tokens 见 `src/assets/theme.css`） |
 | 双端适配 | 路由级 PC/H5 两套组件，按 `navigator.userAgent` 切换 |
 
 ## 功能特性
 
 - **双端适配**：PC 与 H5 独立组件，路由层自动切换
 - **权限控制**：三级权限体系（检索 / 上传编辑 / 全部管理）
-- **信息检索**：按船型 + 关键词分页检索故障排查记录，支持详情/编辑/删除
+- **信息检索**：按船型 + 关键词分页检索故障排查记录，支持详情/编辑/删除，关键词高亮、骨架屏与空状态插画
+- **流程构建器**：拖拽搭建故障排查流程（开始/步骤/判断/结束节点），校验/预览/导入导出/提交绑定排查记录；检索详情支持"流程模式"引导式播放
 - **记录管理**：单条添加 + 批量 Excel 导入，支持图片/文档上传至 OSS
 - **批量上传**：拖拽 Excel 文件，自动解析文本与内嵌图片，可编辑预览后一键提交
-- **数据统计**：ECharts 饼状图按船型统计故障记录数量
+- **数据统计**：ECharts 环形图按船型统计故障记录数量
 - **用户管理**：用户列表、新增用户、修改密码、删除用户（需权限 3）
 
 ## 快速开始
@@ -53,12 +55,11 @@ OCSKILL-FE
 │   ├── main.js                  # 入口：Vue + Router + Element Plus
 │   ├── App.vue                  # 根组件：<RouterView/>
 │   ├── router/index.js          # 路由表 + 全局守卫 + 双端组件选择
-│   ├── assets/                  # 静态图片、基础样式
-│   ├── components/              # 通用组件
+│   ├── assets/                  # 静态图片、base.css、theme.css（Design Tokens）
 │   ├── login/                   # 登录页（PC + H5）
 │   ├── main/                    # 首页（PC + H5）
 │   ├── system/                  # 系统管理页面
-│   │   ├── SystemLayout.vue     #   PC 框架（侧边栏 + 顶部栏）
+│   │   ├── SystemLayout.vue     #   PC 框架（深色侧边栏 + 顶部栏）
 │   │   ├── SystemLayoutH5.vue   #   H5 框架（顶部栏 + TabBar）
 │   │   ├── Retrieval.vue        #   信息检索（PC）
 │   │   ├── RetrievalH5.vue      #   信息检索（H5）
@@ -68,10 +69,17 @@ OCSKILL-FE
 │   │   ├── Mine.vue             #   个人中心（PC）
 │   │   ├── MineH5.vue           #   个人中心（H5）
 │   │   ├── DataStatistics.vue   #   数据统计（PC）
-│   │   └── UserManagement.vue   #   用户管理（PC）
+│   │   ├── UserManagement.vue   #   用户管理（PC）
+│   │   ├── FlowBuilder.vue      #   流程构建器（PC）
+│   │   └── flow/
+│   │       ├── FlowNode.vue     #     画布自定义节点
+│   │       └── FlowRunner.vue   #     流程播放器（构建器预览/检索详情复用）
 │   └── utils/
 │       ├── request.js           # Axios 封装：注入 Token、处理 401
-│       └── token.js             # localStorage 管理 Token/用户名/权限
+│       ├── token.js             # localStorage 管理 Token/用户名/权限
+│       ├── uploadQueue.js       # 全局上传队列（串行 + 200ms 节流）
+│       ├── file.js              # OSS 源文件删除
+│       └── flowSchema.js        # 排查流程数据结构：节点工厂/校验/导入导出
 ```
 
 ## 核心配置
@@ -108,13 +116,14 @@ OCSKILL-FE
 | `/system/mine` | MinePage | 个人中心 | - |
 | `/system/statistics` | DataStatisticsPage | 数据统计 | privilege = 3 |
 | `/system/users` | UserManagementPage | 用户管理 | privilege = 3 |
+| `/system/flow-builder` | FlowBuilderPage | 流程构建器 | privilege >= 2 |
 
 ## 权限等级
 
 | 权限值 | 说明 |
 |---|---|
 | `1` | 仅检索 |
-| `2` | 检索 + 上传/编辑 |
+| `2` | 检索 + 上传/编辑 + 流程构建器 |
 | `3` | 全部权限（删除、批量上传、新增用户、数据统计、用户管理） |
 
 ## API 接口
@@ -131,6 +140,8 @@ OCSKILL-FE
 | `/trbsts` | POST | 编辑保存排查记录 |
 | `/trbsts` | DELETE | 删除排查记录 |
 | `/trbsts` | PUT | 新增排查记录 |
+| `/trbsts/batch` | POST | 批量上传排查记录 |
+| `/trbsts/addflow` | PUT | 为排查记录绑定流程文件 |
 | `/upload` | POST | 文件/图片上传（返回 OSS 链接） |
 | `/reports/trbstCount` | GET | 按船型统计故障记录数量 |
 
@@ -140,17 +151,19 @@ OCSKILL-FE
 - 文档：单个 < 2MB，支持 `.pdf` / `.doc` / `.docx`
 - 批量上传：Excel 解析跳过表头，列顺序为 船型 → 故障现象 → 排查步骤 → 照片，内嵌图片自动提取并上传
 
-## 主题色
+## 主题设计
 
-| 用途 | 色值 |
+全站采用「深海蓝 · 工程感知识工具」设计体系（v2.0），所有颜色/圆角/阴影/字阶统一通过 `src/assets/theme.css` 的 CSS 变量引用，禁止硬编码色值。
+
+| 用途 | 变量 / 色值 |
 |---|---|
-| 主蓝 | `#3584e4` |
-| 深蓝 | `#1a5fb4` |
-| 成功绿 | `#19be6b` |
-| 警告橙 | `#ff9900` |
-| 错误红 | `#ed4014` |
-| 页面背景 | `#f5f7fa` |
-| 标题文字 | `#1a3a6e` |
+| 品牌主色 | `--oc-blue-600` `#2563EB`（hover `#1D4ED8`） |
+| 侧边栏/品牌区 | `--oc-navy-900 → --oc-navy-800`（`#0B1B36 → #10254A`） |
+| 页面背景 | `--oc-gray-50` `#F8FAFC` |
+| 标题/正文/辅助文字 | `--oc-gray-900 / 700 / 500-400` |
+| 成功 / 警告 / 危险 | `#10B981 / #F59E0B / #EF4444` |
+
+详细设计规范见 `docs/OCSKILL-UI重设计方案.md`，项目结构与业务说明见 `PROJECT_CONTEXT.md`。
 
 ## License
 
