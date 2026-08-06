@@ -7,7 +7,7 @@
           v-model="meta.shipId"
           placeholder="关联船型（必选）"
           size="default"
-          style="width: 180px"
+          style="width: 160px; flex-shrink: 0;"
           @change="handleShipChange"
         >
           <el-option
@@ -25,7 +25,7 @@
           :disabled="!meta.shipId || loadingRecords || loadingFlow"
           :loading="loadingRecords || loadingFlow"
           size="default"
-          style="width: 280px"
+          style="width: 200px; flex-shrink: 0;"
           clearable
           filterable
           @change="handleRecordChange"
@@ -38,9 +38,8 @@
           />
         </el-select>
       </div>
-      <div class="toolbar-spacer"></div>
-      <!-- 文件组 -->
-      <div class="toolbar-group">
+      <!-- 文件组（margin-left: auto 自然靠右，替代原 spacer 避免窄屏溢出） -->
+      <div class="toolbar-group toolbar-group-right">
         <el-button :icon="Plus" @click="handleNew">新建</el-button>
         <el-button :icon="Upload" @click="triggerImport">导入</el-button>
         <el-button :icon="Download" @click="handleExport">导出</el-button>
@@ -810,14 +809,18 @@ export default {
     },
     /** 为当前选择的船型+记录新建一个空流程；若该记录有排查步骤则注入为 step 节点链供参考 */
     initNewFlowForCurrentRecord() {
+      const record = this.boundRecord
       const flow = createFlow({
         author: this.meta.author,
         shipId: this.meta.shipId,
         shipName: this.meta.shipName,
         bindTrbstId: this.meta.bindTrbstId
       })
+      // 自动以排查记录的故障现象作为流程名称（用户可手动修改）
+      if (record && record.phenomenon) {
+        flow.name = record.phenomenon
+      }
       // 把排查记录的 shooting 步骤转成 step 节点骨架，串在 start 之后，供用户参考修改
-      const record = this.boundRecord
       const steps = this.parseShootingSteps(record && record.shooting)
       if (steps.length > 0) {
         this.injectStepsSkeleton(flow, steps)
@@ -1622,14 +1625,22 @@ export default {
   box-sizing: border-box;
 }
 
+.toolbar-group-right {
+  margin-left: auto;
+}
+
+/* 下拉框显示区域文字截断（防止长文本撑开） */
+.ship-select-wrap :deep(.el-input__inner),
+.record-select-wrap :deep(.el-input__inner) {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
 .ship-select-wrap,
 .record-select-wrap {
   display: flex;
   align-items: center;
-}
-
-.toolbar-spacer {
-  flex: 1;
 }
 
 .toolbar-group {
