@@ -8,6 +8,8 @@
           placeholder="关联船型（必选）"
           size="default"
           style="width: 160px; flex-shrink: 0;"
+          filterable
+          popper-class="ship-popper"
           @change="handleShipChange"
         >
           <el-option
@@ -22,20 +24,50 @@
         <el-select
           v-model="meta.bindTrbstId"
           :placeholder="meta.shipId ? '排查记录（必选）' : '请先选择船型'"
-          :disabled="!meta.shipId || loadingRecords || loadingFlow"
+          :disabled="!meta.shipId || loadingFlow"
           :loading="loadingRecords || loadingFlow"
           size="default"
           style="width: 200px; flex-shrink: 0;"
           clearable
           filterable
+          remote
+          :remote-method="onRecordSearch"
+          popper-class="record-popper"
           @change="handleRecordChange"
+          @visible-change="onRecordDropdownVisible"
         >
           <el-option
             v-for="r in recordList"
             :key="r.id"
             :label="r.phenomenon"
             :value="r.id"
-          />
+            :class="{ 'has-flow': r.flowUrl }"
+          >
+            <span v-if="r.flowUrl" class="flow-badge" title="已绑定流程"></span>
+            <span class="record-option-text">{{ r.phenomenon }}</span>
+          </el-option>
+          <el-option
+            v-if="recordLoadingMore"
+            disabled
+            label="加载中..."
+            value="__loading__"
+            class="record-load-tip"
+          >
+            <span class="load-spinner"></span>
+            <span>加载中...</span>
+          </el-option>
+          <el-option
+            v-if="!recordHasMore && recordList.length > 0 && !recordKeyword"
+            disabled
+            label="— 已加载全部 —"
+            value="__end__"
+            class="record-load-tip"
+          >
+            <span>— 已加载全部 —</span>
+          </el-option>
+          <template #empty>
+            <span class="record-empty">{{ recordKeyword ? '无匹配记录' : '暂无排查记录' }}</span>
+          </template>
         </el-select>
       </div>
       <!-- 文件组（margin-left: auto 自然靠右，替代原 spacer 避免窄屏溢出） -->
@@ -510,6 +542,14 @@ export default {
       shipList: [],
       recordList: [],
       loadingRecords: false,
+      // 排查记录分页加载与远程搜索状态（参考检索页：每页5条，滚动到底加载下一页并拼接）
+      recordPage: 1,
+      recordPageSize: 5,
+      recordTotal: 0,
+      recordLoadedCount: 0,
+      recordHasMore: false,
+      recordLoadingMore: false,
+      recordKeyword: '',
       uploadingPhoto: false,
       uploadingDoc: false,
       loadingFlow: false,
@@ -592,6 +632,8 @@ export default {
   },
   created() {
     this.meta.author = getUsername() || ''
+    // 记录列表请求版本号：搜索/翻页并发时丢弃过期响应，避免乱序拼接
+    this._recordReqId = 0
     this.fetchShips()
     // 画布事件
     this.vfOnConnect(this.handleConnect)
@@ -634,6 +676,20 @@ export default {
     if (this._onKeydown) {
       window.removeEventListener('keydown', this._onKeydown)
       this._onKeydown = null
+    }
+    // 清理记录下拉滚动监听与搜索防抖定时器
+    if (this._recordScrollEl && this._onRecordScroll) {
+      this._recordScrollEl.removeEventListener('scroll', this._onRecordScroll)
+      this._recordScrollEl = null
+      this._onRecordScroll = null
+    }
+    if (this._recordScrollRaf) {
+      cancelAnimationFrame(this._recordScrollRaf)
+      this._recordScrollRaf = null
+    }
+    if (this._recordSearchTimer) {
+      clearTimeout(this._recordSearchTimer)
+      this._recordSearchTimer = null
     }
     this.flushDraft()
   },
@@ -695,6 +751,11 @@ export default {
       this.meta.bindTrbstId = null
       this.previousRecordId = null
       this.recordList = []
+      // 重置记录分页与搜索状态，避免残留关键词/页码影响新船型的候选拉取
+      this.recordKeyword = ''
+      this.recordPage = 1
+      this.recordLoadedCount = 0
+      this.recordHasMore = false
       this.vfNodes = []
       this.vfEdges = []
       this.selectedNodeId = null
@@ -740,6 +801,9 @@ export default {
         })
         return
       }
+      // 提前同步获取 record 引用：remote 搜索选中后 query 清空会触发 fetchRecords 重置列表，
+      // 若在 confirm 之后才查找，可能因列表重置而找不到对应记录
+      const record = this.recordList.find(r => r.id === recordId)
       // 切换到不同记录且有未提交编辑时确认
       if (this.dirty && this.vfNodes.length > 0) {
         try {
@@ -759,7 +823,6 @@ export default {
       }
       this.previousRecordId = recordId
       this.meta.bindTrbstId = recordId
-      const record = this.recordList.find(r => r.id === recordId)
       if (record && record.flowUrl) {
         // loadFlow 内部会接管 suppressDirty 并在 nextTick 重置
         await this.loadFlowFromUrl(record.flowUrl)
@@ -816,10 +879,8 @@ export default {
         shipName: this.meta.shipName,
         bindTrbstId: this.meta.bindTrbstId
       })
-      // 自动以排查记录的故障现象作为流程名称（用户可手动修改）
-      if (record && record.phenomenon) {
-        flow.name = record.phenomenon
-      }
+      // 流程名统一默认为"流程模式"，不再使用故障现象
+      flow.name = '流程模式'
       // 把排查记录的 shooting 步骤转成 step 节点骨架，串在 start 之后，供用户参考修改
       const steps = this.parseShootingSteps(record && record.shooting)
       if (steps.length > 0) {
@@ -830,7 +891,7 @@ export default {
         message: steps.length > 0
           ? `已创建新流程，并注入 ${steps.length} 条排查步骤供参考`
           : '该记录暂无流程，已创建新流程',
-        type: 'info'
+        type: 'primary'
       })
     },
     /** 解析排查步骤文本（按中英文分号分隔，去空白去空段） */
@@ -838,30 +899,72 @@ export default {
       if (!shooting || typeof shooting !== 'string') return []
       return shooting.split(/[；;]/).map(s => s.trim()).filter(Boolean)
     },
-    /** 把步骤数组转成 step 节点注入画布（不自动连线，由用户自行连接），垂直布局 */
+    /** 把步骤数组转成 step 节点注入画布（不自动连线，由用户自行连接），start 在左侧、步骤在右侧垂直排列 */
     injectStepsSkeleton(flow, steps) {
       const start = flow.nodes.find(n => n.type === 'start')
       const startX = start ? start.position.x : 80
       const startY = start ? start.position.y : 160
+      const stepOffsetX = 300  // 步骤节点在 start 右侧 300px
       const gapY = 130
       steps.forEach((text, i) => {
-        const node = createNode('step', { x: startX, y: startY + (i + 1) * gapY })
-        // label 用截断便于画布显示，完整步骤存 description 供属性面板参考编辑
-        node.label = this.truncateText(text, 24)
+        const node = createNode('step', { x: startX + stepOffsetX, y: startY + i * gapY })
+        // 步骤节点标题统一默认为"请按以下步骤排查："，具体步骤内容存 description 供查看/编辑
+        node.label = '请按以下步骤排查：'
         node.description = text
         flow.nodes.push(node)
       })
     },
-    /** 拉取指定船型下的排查记录，供"绑定排查记录"下拉选择 */
-    fetchRecords(shipId) {
+    /**
+     * 拉取指定船型下的排查记录，供"绑定排查记录"下拉选择。
+     * 参考 Retrieval：分页查询（每页 5 条）+ 单关键词 keyWord。
+     * - append=false：首次加载/换船型/换关键词时重置列表（page=1）
+     * - append=true ：滚动到底加载下一页并拼接到列表尾部
+     * 并发控制：用 _recordReqId 丢弃过期响应，避免搜索与翻页乱序拼接
+     * 占位回显：已选记录不在当前结果时，复用缓存的关键字段，保证 boundRecord/oldFlowUrl 仍可用
+     */
+    fetchRecords(shipId, append = false) {
       if (!shipId) {
         this.recordList = []
+        this.recordTotal = 0
+        this.recordLoadedCount = 0
+        this.recordHasMore = false
         return
       }
-      this.loadingRecords = true
-      request.get('/trbsts', { params: { shipId, page: 1, pageSize: 100 } }).then(res => {
-        const rows = (res.data && res.data.rows) || []
-        this.recordList = rows.map(r => ({
+      // 重置列表前缓存已选记录的关键字段，用于占位回显（避免 boundRecord/oldFlowUrl 丢失）
+      let cachedSelected = null
+      if (this.meta.bindTrbstId) {
+        const sel = this.recordList.find(r => r.id === this.meta.bindTrbstId)
+        if (sel) {
+          cachedSelected = {
+            phenomenon: sel.phenomenon,
+            flowUrl: sel.flowUrl || '',
+            photo: Array.isArray(sel.photo) ? [...sel.photo] : [],
+            doc: Array.isArray(sel.doc) ? [...sel.doc] : []
+          }
+        }
+      }
+      if (!append) {
+        this.recordPage = 1
+        this.recordHasMore = true
+        this.loadingRecords = true
+      } else {
+        this.recordLoadingMore = true
+      }
+      const reqId = ++this._recordReqId
+      const params = {
+        shipId,
+        page: this.recordPage,
+        pageSize: this.recordPageSize
+      }
+      if (this.recordKeyword) {
+        // 与检索页一致：单关键词走 keyWord 参数
+        params.keyWord = this.recordKeyword
+      }
+      request.get('/trbsts', { params }).then(res => {
+        // 过期请求（期间又触发了新的搜索/翻页）：丢弃本次结果，避免乱序拼接
+        if (reqId !== this._recordReqId) return
+        const total = (res.data && res.data.total) || 0
+        const rows = ((res.data && res.data.rows) || []).map(r => ({
           id: r.id,
           phenomenon: this.truncateText(r.phenomenon || '(无现象描述)', 40),
           // 后端在检索排查记录时已同步返回 flowUrl/photo/doc，供加载流程与节点附件选取
@@ -871,23 +974,101 @@ export default {
           // shooting 原文用于新建流程时注入步骤骨架
           shooting: r.shooting || ''
         }))
-        // 已绑定记录不在当前列表（被删除或超出前100条）时保留占位，避免下拉显示原始 id
+        if (append) {
+          // 追加模式：去重后拼接到尾部
+          const existIds = new Set(this.recordList.map(r => r.id))
+          rows.forEach(r => { if (!existIds.has(r.id)) this.recordList.push(r) })
+          this.recordLoadedCount += rows.length
+        } else {
+          this.recordList = rows
+          this.recordLoadedCount = rows.length
+        }
+        this.recordTotal = total
+        this.recordHasMore = this.recordLoadedCount < total
+        // 已绑定记录不在当前结果时保留占位，避免下拉显示原始 id
         if (this.meta.bindTrbstId && !this.recordList.some(r => r.id === this.meta.bindTrbstId)) {
           this.recordList.unshift({
             id: this.meta.bindTrbstId,
-            phenomenon: `记录 #${this.meta.bindTrbstId}（不在当前船型前 100 条中）`,
-            flowUrl: '',
-            photo: [],
-            doc: [],
+            // 优先复用缓存的展示文本，避免输入框 label 回退成 id
+            phenomenon: (cachedSelected && cachedSelected.phenomenon) || `记录 #${this.meta.bindTrbstId}`,
+            flowUrl: (cachedSelected && cachedSelected.flowUrl) || '',
+            photo: (cachedSelected && cachedSelected.photo) || [],
+            doc: (cachedSelected && cachedSelected.doc) || [],
             shooting: ''
           })
         }
+        // 重新搜索后滚动条回到顶部，避免停留在原位置误触发 loadMore
+        if (!append) {
+          this.$nextTick(() => {
+            if (this._recordScrollEl) this._recordScrollEl.scrollTop = 0
+          })
+        }
       }).catch(() => {
-        this.recordList = []
+        if (reqId !== this._recordReqId) return
+        if (!append) this.recordList = []
         ElMessage({ message: '获取排查记录列表失败', type: 'error' })
       }).finally(() => {
+        if (reqId !== this._recordReqId) return
         this.loadingRecords = false
+        this.recordLoadingMore = false
       })
+    },
+    /** 记录下拉远程搜索：单关键词，防抖 300ms，关键词未变化不重复请求 */
+    onRecordSearch(query) {
+      if (this._recordSearchTimer) clearTimeout(this._recordSearchTimer)
+      this._recordSearchTimer = setTimeout(() => {
+        this._recordSearchTimer = null
+        const q = (query || '').trim()
+        if (q === this.recordKeyword) return
+        this.recordKeyword = q
+        if (this.meta.shipId) {
+          this.fetchRecords(this.meta.shipId, false)
+        }
+      }, 300)
+    },
+    /** 记录下拉显隐：打开时挂载滚动监听，关闭时卸载，避免内存泄漏与重复绑定 */
+    onRecordDropdownVisible(visible) {
+      if (visible) {
+        this.$nextTick(() => {
+          const popper = document.querySelector('.record-popper')
+          if (!popper) return
+          const scrollEl = popper.querySelector('.el-select-dropdown__wrap')
+          if (scrollEl) {
+            this._recordScrollEl = scrollEl
+            this._onRecordScroll = this.onRecordScroll.bind(this)
+            // passive 提升滚动性能，rAF 内部自行节流
+            scrollEl.addEventListener('scroll', this._onRecordScroll, { passive: true })
+          }
+        })
+      } else if (this._recordScrollEl && this._onRecordScroll) {
+        this._recordScrollEl.removeEventListener('scroll', this._onRecordScroll)
+        this._recordScrollEl = null
+        this._onRecordScroll = null
+        // 关闭下拉时取消未执行的 rAF，防止关闭后仍触发加载
+        if (this._recordScrollRaf) {
+          cancelAnimationFrame(this._recordScrollRaf)
+          this._recordScrollRaf = null
+        }
+      }
+    },
+    /** 滚动接近底部时预加载下一页；用 rAF 节流避免高频 scroll 回调造成的卡顿 */
+    onRecordScroll() {
+      if (this._recordScrollRaf) return
+      this._recordScrollRaf = requestAnimationFrame(() => {
+        this._recordScrollRaf = null
+        const el = this._recordScrollEl
+        if (!el) return
+        // 距底 60px 提前触发，让加载更无感（约等于提前 1/3 项的高度）
+        if (el.scrollHeight - el.scrollTop - el.clientHeight < 60) {
+          this.loadMoreRecords()
+        }
+      })
+    },
+    /** 加载下一页记录并拼接到列表尾部；无更多数据或正在加载时跳过 */
+    loadMoreRecords() {
+      if (!this.recordHasMore || this.recordLoadingMore || !this.meta.shipId) return
+      this.recordPage += 1
+      this.fetchRecords(this.meta.shipId, true)
     },
     truncateText(text, max) {
       return text.length > max ? text.slice(0, max) + '…' : text
@@ -1032,7 +1213,7 @@ export default {
           if (flow && errors.length === 0 && flow.shipId && flow.bindTrbstId) {
             this.loadFlow(flow)
             restored = true
-            ElMessage({ message: '已恢复上次未提交的草稿', type: 'info' })
+            ElMessage({ message: '已恢复上次未提交的草稿', type: 'primary' })
           }
         }
       } catch (e) {
@@ -1045,7 +1226,7 @@ export default {
         this.meta.shipName = ''
         this.meta.bindTrbstId = null
         this.meta.id = genId('flow')
-        this.meta.name = '未命名排查流程'
+        this.meta.name = '流程模式'
         this.meta.description = ''
         this.meta.createTime = ''
         this.vfNodes = []
@@ -1104,6 +1285,10 @@ export default {
         x: Math.round(point.x - 95),
         y: Math.round(point.y - 40)
       })
+      // 步骤节点标题统一默认为"请按以下步骤排查："
+      if (type === 'step') {
+        schemaNode.label = '请按以下步骤排查：'
+      }
       this.vfAddNodes([this.schemaNodeToVf(schemaNode)])
       this.selectedNodeId = schemaNode.id
       this.selectedEdgeId = null
@@ -1348,7 +1533,7 @@ export default {
       const node = this.selectedNode
       if (!node) return
       if (!this.hasRecordMedia('photo')) {
-        ElMessage({ message: '当前排查记录没有可选图片', type: 'info' })
+        ElMessage({ message: '当前排查记录没有可选图片', type: 'warning' })
         return
       }
       this.mediaPickerMode = 'photo'
@@ -1359,7 +1544,7 @@ export default {
       const node = this.selectedNode
       if (!node) return
       if (!this.hasRecordMedia('doc')) {
-        ElMessage({ message: '当前排查记录没有可选文档', type: 'info' })
+        ElMessage({ message: '当前排查记录没有可选文档', type: 'warning' })
         return
       }
       this.mediaPickerMode = 'doc'
@@ -1433,12 +1618,17 @@ export default {
       this.meta.shipName = ''
       this.meta.bindTrbstId = null
       this.meta.id = genId('flow')
-      this.meta.name = '未命名排查流程'
+      this.meta.name = '流程模式'
       this.meta.description = ''
       this.meta.createTime = ''
       this.vfNodes = []
       this.vfEdges = []
       this.recordList = []
+      // 重置记录分页与搜索状态，避免下次选择时残留
+      this.recordKeyword = ''
+      this.recordPage = 1
+      this.recordLoadedCount = 0
+      this.recordHasMore = false
       this.selectedNodeId = null
       this.selectedEdgeId = null
       this.previousShipId = null
@@ -2140,6 +2330,74 @@ export default {
 .picker-empty {
   margin: 0;
   padding: 24px 0;
+  text-align: center;
+  font-size: var(--oc-text-sm);
+  color: var(--oc-gray-400);
+}
+</style>
+
+<!-- 全局样式：下拉 popper 经 append-to-body 挂载，scoped 无法穿透，需独立 style 块 -->
+<style>
+/* 船型/记录下拉固定展示 5 项高度（5 × 34px = 170px），超出靠滚轮滑动 */
+.ship-popper .el-select-dropdown__wrap,
+.record-popper .el-select-dropdown__wrap {
+  max-height: 170px !important;
+}
+
+/* 选项内部布局：徽标 + 文本水平排列，文本自适应截断 */
+.record-popper .el-select-dropdown__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+}
+
+.record-popper .record-option-text {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 已绑定流程的绿色圆点徽标（替代纯绿色文字，视觉更精致） */
+.record-popper .flow-badge {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--oc-success);
+  flex-shrink: 0;
+  box-shadow: 0 0 0 2px var(--oc-success-bg);
+}
+
+/* 加载更多/已加载全部 提示项：居中、浅灰、不可点击 */
+.record-popper .el-select-dropdown__item.record-load-tip {
+  justify-content: center;
+  gap: 6px;
+  color: var(--oc-gray-400);
+  font-size: var(--oc-text-xs);
+  cursor: default;
+  padding: 0 12px;
+}
+
+/* 提示项内 mini spinner */
+.record-popper .load-spinner {
+  width: 12px;
+  height: 12px;
+  border: 1.5px solid var(--oc-gray-200);
+  border-top-color: var(--oc-blue-500);
+  border-radius: 50%;
+  animation: fb-load-spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes fb-load-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* 空状态文案 */
+.record-popper .record-empty {
+  display: block;
+  padding: 16px 0;
   text-align: center;
   font-size: var(--oc-text-sm);
   color: var(--oc-gray-400);

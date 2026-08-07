@@ -101,8 +101,8 @@ export default {
       // 权限说明卡片定义（纯展示数据）
       privDefs: [
         { level: 1, name: '信息检索', desc: '检索船型故障排查记录', icon: 'Search', iconClass: 'icon-blue' },
-        { level: 2, name: '数据上传', desc: '新增与编辑排查记录', icon: 'Upload', iconClass: 'icon-cyan' },
-        { level: 3, name: '系统管理', desc: '批量上传、统计与用户管理', icon: 'Setting', iconClass: 'icon-amber' }
+        { level: 2, name: '数据上传', desc: '新增与上传排查记录、构建流程文件', icon: 'Upload', iconClass: 'icon-cyan' },
+        { level: 3, name: '系统管理', desc: '批量上传与流程管理、统计与用户管理', icon: 'Setting', iconClass: 'icon-amber' }
       ]
     }
   },
